@@ -12,7 +12,7 @@ This software uses the nanoflann kdtree library (https://github.com/jlblancoc/na
 
 ## Documentation
 
-See the manual file Manual.pdf in the man directory for further details and help or contact tomas.c.aquino@gmail.com.
+See the manual file Manual.pdf in the man directory for further details and help or contact Tomás Aquino at tomas.c.aquino@gmail.com.
 
 ## License
 
