@@ -39,7 +39,7 @@ namespace ctrw
     void operator()
     (CTRW const& ctrw, OutputState output_state)
     {
-      bool delim;
+      bool delim = 0;
       for (auto const& part : ctrw.particles())
       {
         if (delim)

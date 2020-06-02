@@ -34,12 +34,12 @@ namespace field
     ~Measurer_scalar()
     { output.close(); }
       
-    template <typename Field>
+    template <typename Field, typename Value>
     void operator()
     (Field const& field, std::vector<std::size_t> const& points,
-     double time)
+     Value tag)
     {
-      output << time;
+      output << tag;
       for (auto idx : points)
         output << delimiter << field[idx];
       output << "\n";
