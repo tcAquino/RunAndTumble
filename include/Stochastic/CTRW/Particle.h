@@ -37,7 +37,7 @@ namespace ctrw
     template <typename Transition>
     void transition(Transition& transition)
     {
-      new_state = old_state;
+      old_state = new_state;
       transition(new_state);
     }
     
