@@ -33,7 +33,7 @@ namespace ctrw
 		template <typename State>
 		void operator() (State& state)
 		{
-      auto const& state_old = state;
+      auto state_old = state;
       operation::plus_InPlace(state.position, jump_generator(state));
       boundary(state, state_old);
       state.time += time_generator(state);
@@ -63,7 +63,7 @@ namespace ctrw
     template <typename State>
     void operator()(State& state)
     {
-      auto const& state_old = state;
+      auto state_old = state;
       operation::plus_InPlace(state.position, jump_generator(state));
       boundary(state, state_old);
     }
@@ -103,7 +103,7 @@ namespace ctrw
 		template <typename State>
 		void operator()(State& state)
 		{
-      auto const& state_old = state;
+      auto state_old = state;
       std::vector<double> jump(state.position.size());
       for (std::size_t dd = 0; dd < jump.size(); ++dd)
         jump[dd] = diff_generators[dd]();
@@ -135,7 +135,7 @@ namespace ctrw
 	private:
     TimeGenerator_Step<double> time_generator;
     std::vector<JumpGenerator_Diffusion_1d> diff_generators;
-    FlowField const& flow_field;
+    FlowField flow_field;
 		Boundary boundary;
 	};
   template <typename FlowField, typename Boundary>
@@ -158,7 +158,7 @@ namespace ctrw
     template <typename State>
     void operator()(State& state)
     {
-      auto const& state_old = state;
+      auto state_old = state;
       state.position += jump_generator(state);
       boundary(state, state_old);
       state.time += timestep();
@@ -405,9 +405,7 @@ namespace ctrw
   typename JumpGenerator, typename OrientationGenerator,
   typename OrientationGenerator_Wall>
   Transitions_RunAndTumble_PTRW
-  (JumpGenerator&&,
-  OrientationGenerator&&,
-  OrientationGenerator_Wall&&,
+  (JumpGenerator&&, OrientationGenerator&&, OrientationGenerator_Wall&&,
   StateSwitcher&&, Boundary&&) ->
   Transitions_RunAndTumble_PTRW
   <Boundary, StateSwitcher, JumpGenerator,
@@ -416,9 +414,7 @@ namespace ctrw
   <typename Boundary, typename StateSwitcher,
   typename JumpGenerator, typename OrientationGenerator>
   Transitions_RunAndTumble_PTRW
-  (JumpGenerator&&,
-  OrientationGenerator&&,
-  StateSwitcher&&, Boundary&&) ->
+  (JumpGenerator&&, OrientationGenerator&&, StateSwitcher&&, Boundary&&) ->
   Transitions_RunAndTumble_PTRW
   <Boundary, StateSwitcher, JumpGenerator,
   OrientationGenerator, OrientationGenerator>;

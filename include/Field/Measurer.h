@@ -36,8 +36,8 @@ namespace field
       
     template <typename Field>
     void operator()
-    (double time, Field const& field,
-     std::vector<std::size_t> const& points)
+    (Field const& field, std::vector<std::size_t> const& points,
+     double time)
     {
       output << time;
       for (auto idx : points)

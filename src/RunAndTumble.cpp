@@ -266,9 +266,9 @@ int main(int argc, const char * argv[])
       reaction(concentration_fields[0], particle_grid, grid);
     }
     for (std::size_t ii = 0; ii < measurer_particle.size(); ++ii)
-      (*measurer_particle[ii])(time, ptrw, OutputState{});
+      (*measurer_particle[ii])(ptrw, OutputState{}, time);
     for (std::size_t ii = 0; ii < measurer_field.size(); ++ii)
-      (*measurer_field[ii])(time, concentration_fields[ii], void_solid.voids());
+      (*measurer_field[ii])(concentration_fields[ii], void_solid.voids(), time);
   }
   std::cout << "\tDone!\n";
   
