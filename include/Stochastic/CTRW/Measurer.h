@@ -9,8 +9,9 @@
 #ifndef Measurer_CTRW_h
 #define Measurer_CTRW_h
 
-#include <valarray>
+#include <exception>
 #include <fstream>
+#include <iomanip>
 #include <string>
 #include "general/useful.h"
 
@@ -19,6 +20,10 @@ namespace ctrw
   class Measurer_state
   {
   public:
+    struct New{};
+    struct Old{};
+    struct Both{};
+    
     Measurer_state
     (std::string filename,
      int precision = 8, std::string delimiter = "\t")
@@ -37,25 +42,63 @@ namespace ctrw
       
     template <typename CTRW, typename OutputState>
     void operator()
-    (CTRW const& ctrw, OutputState output_state)
+    (CTRW const& ctrw, OutputState output_state, New)
     {
       bool delim = 0;
       for (auto const& part : ctrw.particles())
       {
         if (delim)
+        {
           output << delimiter;
+          delim = 1;
+        }
         output_state(part.state_new(), output, delimiter);
         delim = 1;
       }
       output << "\n";
     }
       
-    template <typename CTRW, typename OutputState, typename Value>
+    template <typename CTRW, typename OutputState>
     void operator()
-    (CTRW const& ctrw, OutputState output_state, Value tag)
+    (CTRW const& ctrw, OutputState output_state, Old)
+    {
+      bool delim = 0;
+      for (auto const& part : ctrw.particles())
+      {
+        if (delim)
+          output << delimiter;
+        output_state(part.state_old(), output, delimiter);
+        delim = 1;
+      }
+      output << "\n";
+    }
+    
+    template <typename CTRW, typename OutputState>
+    void operator()
+    (CTRW const& ctrw, OutputState output_state, Both)
+    {
+      bool delim = 0;
+      for (auto const& part : ctrw.particles())
+      {
+        if (delim)
+        {
+          output << delimiter;
+          delim = 1;
+        }
+        output_state(part.state_new(), output, delimiter);
+        output << delimiter;
+        output_state(part.state_old(), output, delimiter);
+      }
+      output << "\n";
+    }
+      
+    template <typename CTRW, typename OutputState, typename Value,
+    typename Which>
+    void operator()
+    (CTRW const& ctrw, OutputState output_state, Value tag, Which which)
     {
       output << tag << delimiter;
-      (*this)(ctrw, output_state);
+      (*this)(ctrw, output_state, which);
     }
     
   private:
@@ -231,10 +274,10 @@ namespace ctrw
       const std::string delimiter;
   };
   
-//  class Measurer_crossing_dist_cprint
+//  class Measurer_crossing_dist
 //  {
 //  public:
-//    Measurer_crossing_dist_cprint
+//    Measurer_crossing_dist
 //    (std::valarray<double> measure_at, std::size_t nr_particles = 0)
 //    : measure_at{ measure_at }
 //    , measure_value(measure_at.size())
@@ -273,10 +316,10 @@ namespace ctrw
 //    std::vector<std::vector<double>> measure_value;
 //  };
 //
-//  class Measurer_dist_cprint
+//  class Measurer_dist
 //  {
 //  public:
-//    Measurer_dist_cprint
+//    Measurer_dist
 //    (std::valarray<double> measure_at, std::size_t nr_particles = 0)
 //    : measure_at(measure_at)
 //    , measure_value(measure_at.size())
@@ -312,10 +355,10 @@ namespace ctrw
 //    std::vector<std::vector<double>> measure_value;
 //  };
 //
-//  class Measurer_mean_cprint
+//  class Measurer_mean
 //  {
 //  public:
-//    Measurer_mean_cprint(std::valarray<double> measure_at)
+//    Measurer_mean(std::valarray<double> measure_at)
 //    : measure_at(measure_at)
 //    , mean(measure_at.size())
 //    {}
@@ -344,7 +387,7 @@ namespace ctrw
 //    std::valarray<double> mean;
 //  };
 //
-//  class Measurer_crossing_total_cprint
+//  class Measurer_crossing_total
 //  {
 //  public:
 //    Measurer_crossing_total_cprint
@@ -382,7 +425,7 @@ namespace ctrw
 //    std::vector<std::size_t> counts{ std::vector<std::size_t>(measure_value.size()) };
 //  };
 //
-//  class Measurer_total_cprint
+//  class Measurer_total
 //  {
 //  public:
 //    Measurer_total(std::valarray<double> measure_at)
@@ -412,7 +455,7 @@ namespace ctrw
 //    std::valarray<double> total;
 //  };
 //
-//  class Measurer_mean_variance_cprint
+//  class Measurer_mean_variance
 //  {
 //  public:
 //    Measurer_mean_variance_cprint
@@ -456,10 +499,10 @@ namespace ctrw
 //  };
 //
 //  template<typename Target_type, typename Return_type>
-//  class Measurer_first_return_cprint
+//  class Measurer_first_return
 //  {
 //  public:
-//    Measurer_first_return_cprint
+//    Measurer_first_return
 //    (Target_type target, std::size_t nr_particles,
 //     std::size_t nr_measures = 0, Return_type initial = 0.)
 //    : target{ target }
