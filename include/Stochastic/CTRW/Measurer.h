@@ -12,20 +12,24 @@
 #include <exception>
 #include <fstream>
 #include <iomanip>
+#include <iterator>
 #include <string>
+#include <unordered_set>
+#include "general/Operations.h"
 #include "general/useful.h"
+#include "Stochastic/CTRW/StateGetter.h"
 
 namespace ctrw
 {
-  class Measurer_state
+  class Measurer_State
   {
   public:
     struct New{};
     struct Old{};
     struct Both{};
     
-    Measurer_state
-    (std::string filename,
+    Measurer_State
+    (std::string const& filename,
      int precision = 8, std::string delimiter = "\t")
     : output{ filename }
     , delimiter{ delimiter }
@@ -37,7 +41,7 @@ namespace ctrw
           "Could not open file " + filename + " for writing" };
     }
     
-    ~Measurer_state()
+    ~Measurer_State()
     { output.close(); }
       
     template <typename CTRW, typename OutputState>
@@ -92,10 +96,11 @@ namespace ctrw
       output << "\n";
     }
       
-    template <typename CTRW, typename OutputState, typename Value,
-    typename Which>
+    template <typename CTRW, typename OutputState,
+    typename Value,typename Which>
     void operator()
-    (CTRW const& ctrw, OutputState output_state, Value tag, Which which)
+    (CTRW const& ctrw, OutputState output_state, Value tag,
+     Which which)
     {
       output << tag << delimiter;
       (*this)(ctrw, output_state, which);
@@ -106,11 +111,12 @@ namespace ctrw
     std::string delimiter;
   };
       
-  class Measurer_collection
+  class Measurer_Collection
   {
   public:
-    Measurer_collection
-    (std::string const& filename, int precision = 8, std::string delimiter = "\t")
+    Measurer_Collection
+    (std::string const& filename, int precision = 8,
+     std::string delimiter = "\t")
     : output{ filename }
     , delimiter{ delimiter }
     {
@@ -121,7 +127,7 @@ namespace ctrw
         "Could not open file " + filename + "for writing" };
     }
       
-    ~Measurer_collection()
+    ~Measurer_Collection()
     { output.close(); }
     
     template <typename Subject>
@@ -150,11 +156,12 @@ namespace ctrw
     const std::string delimiter;
   };
   
-  class Measurer_container
+  class Measurer_Particle
   {
   public:
-    Measurer_container
-    (std::string const& filename, int precision = 8, std::string delimiter = "\t")
+    Measurer_Particle
+    (std::string const& filename, int precision = 8,
+     std::string delimiter = "\t")
     : output{ filename }
     , delimiter{ delimiter }
     {
@@ -165,7 +172,7 @@ namespace ctrw
         "Could not open file " + filename + "for writing" };
     }
     
-    ~Measurer_container()
+    ~Measurer_Particle()
     { output.close(); }
     
     template <typename Subject, typename Getter>
@@ -174,8 +181,7 @@ namespace ctrw
       bool delim = 0;
       for (auto const& part : subject.particles())
       {
-        auto values = get(part);
-        useful::print(output, values, delim, delimiter);
+        useful::print(output, get(part), delim, delimiter);
         delim = 1;
       }
       output << "\n";
@@ -192,54 +198,13 @@ namespace ctrw
     std::ofstream output;
     const std::string delimiter;
   };
-  
-  class Measurer_value
-  {
-  public:
-    Measurer_value
-    (std::string const& filename, int precision = 8, std::string delimiter = "\t")
-    : output{ filename }
-    , delimiter{ delimiter }
-    {
-      output << std::setprecision(precision);
-      output << std::scientific;
-      if (!output.is_open())
-      throw std::runtime_error{
-        "Could not open file " + filename + "for writing" };
-    }
-    
-    ~Measurer_value()
-    { output.close(); }
-    
-    template <typename Subject, typename Getter>
-    void operator()(Subject const& subject, Getter get)
-    {
-      std::string delim = "";
-      for (auto const& part : subject.particles())
-      {
-        output << delim << get(part);
-        delim = delimiter;
-      }
-      output << "\n";
-    }
-    
-    template <typename Subject, typename Getter, typename Value>
-    void operator()(Subject const& subject, Getter get, Value tag)
-    {
-      output << tag << delimiter;
-      (*this)(subject, get);
-    }
-    
-  private:
-    std::ofstream output;
-    const std::string delimiter;
-  };
       
-  class Measurer_value_total
+  class Measurer_Total
   {
   public:
-    Measurer_value_total
-    (std::string const& filename, int precision = 8, std::string delimiter = "\t")
+    Measurer_Total
+    (std::string const& filename, int precision = 8,
+     std::string delimiter = "\t")
     : output{ filename }
     , delimiter{ delimiter }
     {
@@ -250,16 +215,20 @@ namespace ctrw
         "Could not open file " + filename + "for writing" };
     }
     
-    ~Measurer_value_total()
+    ~Measurer_Total()
     { output.close(); }
     
     template <typename Subject, typename Getter>
     void operator()(Subject const& subject, Getter get)
     {
-      decltype(get(subject.particles().back())) val{ 0. };
-      for (auto const& part : subject.particles())
-        val += get(part);
-      output << val << "\n";
+      if (subject.size() == 0)
+        return;
+      
+      auto val = get(*subject.cbegin());
+      for (auto part_it = std::next(subject.cbegin());
+           part_it != subject.cend();++part_it)
+        operation::plus_InPlace(val, get(*part_it));
+      useful::print(output, val, 0, delimiter);
     }
     
     template <typename Subject, typename Getter, typename Value>
@@ -273,292 +242,465 @@ namespace ctrw
       std::ofstream output;
       const std::string delimiter;
   };
+      
+  class Measurer_Mean
+  {
+  public:
+    Measurer_Mean
+    (std::string const& filename, int precision = 8,
+     std::string delimiter = "\t")
+    : output{ filename }
+    , delimiter{ delimiter }
+    {
+      output << std::setprecision(precision)
+             << std::scientific;
+      if (!output.is_open())
+      throw std::runtime_error{
+        "Could not open file " + filename + "for writing" };
+    }
+    
+    ~Measurer_Mean()
+    { output.close(); }
+    
+    template <typename Subject, typename Getter>
+    void operator()(Subject const& subject, Getter get)
+    {
+      if (subject.size() == 0)
+        return;
+      
+      auto val = get(*subject.cbegin());
+      for (auto part_it = std::next(subject.cbegin());
+           part_it != subject.cend();++part_it)
+        operation::plus_InPlace(val, get(*part_it));
+      operation::div_InPlace(val, subject.size());
+      useful::print(output, val, 0, delimiter);
+    }
+    
+    template <typename Subject, typename Getter, typename Value>
+    void operator()(Subject const& subject, Getter get, Value tag)
+    {
+      output << tag << delimiter;
+      (*this)(subject, get);
+    }
+    
+    private:
+      std::ofstream output;
+      const std::string delimiter;
+  };
+      
+  template <typename Type = double,
+  template<typename> typename Container = std::vector>
+  class Measurer_Store_Total
+  {
+  public:
+    Measurer_Store_Total(std::size_t reserve = 0)
+    { values.reserve(reserve); }
+    
+    template <typename Subject, typename Getter>
+    void operator()(Subject const& subject, Getter get)
+    {
+      if (subject.size() == 0)
+      {
+        values.push_back();
+        return;
+      }
+      
+      auto val = get(*subject.cbegin());
+      for (auto part_it = std::next(subject.cbegin());
+           part_it != subject.cend();++part_it)
+        operation::plus_InPlace(val, get(*part_it));
+    }
+    
+    auto const& get()
+    { return values; }
+    
+    void print
+    (std::string const& filename, int precision = 8,
+     std::string delimiter = "\t")
+    {
+      std::fstream output{ filename };
+      output << std::setprecision(precision)
+             << std::scientific;
+      for (auto const& val : values)
+      {
+        useful::print(output, val, 0, delimiter);
+        output << "\n";
+      }
+    }
+    
+    template <typename Cont>
+    void print
+    (std::string const& filename, Cont const& measure_points,
+     int precision = 8, std::string delimiter = "\t")
+    {
+      std::fstream output{ filename };
+      output << std::setprecision(precision)
+             << std::scientific;
+      for (std::size_t mm = 0; mm < measure_points.size(); ++mm)
+      {
+        output << measure_points[mm];
+        useful::print(output, values[mm], 1, delimiter);
+        output << "\n";
+      }
+    }
+    
+  private:
+    Container<Type> values;
+  };
+      
+  template <typename Type = double,
+  template<typename> typename Container = std::vector>
+  class Measurer_Store_Mean
+  {
+  public:
+    Measurer_Store_Mean(std::size_t reserve = 0)
+    { values.reserve(reserve); }
+    
+    template <typename Subject, typename Getter>
+    void operator()(Subject const& subject, Getter get)
+    {
+      if (subject.size() == 0)
+      {
+        values.push_back();
+        return;
+      }
+      
+      auto val = get(*subject.cbegin());
+      for (auto part_it = std::next(subject.cbegin());
+           part_it != subject.cend();++part_it)
+        operation::plus_InPlace(val, get(*part_it));
+      operation::div_InPlace(val, subject.size());
+    }
+    
+    auto const& get()
+    { return values; }
+    
+    void print
+    (std::string const& filename, int precision = 8,
+     std::string delimiter = "\t")
+    {
+      std::fstream output{ filename };
+      output << std::setprecision(precision)
+             << std::scientific;
+      for (auto const& val : values)
+      {
+        useful::print(output, val, 0, delimiter);
+        output << "\n";
+      }
+    }
+    
+    template <typename Cont>
+    void print
+    (std::string const& filename, Cont const& measure_points,
+     int precision = 8, std::string delimiter = "\t")
+    {
+      std::fstream output{ filename };
+      output << std::setprecision(precision)
+             << std::scientific;
+      for (std::size_t mm = 0; mm < measure_points.size(); ++mm)
+      {
+        output << measure_points[mm];
+        useful::print(output, values[mm], 1, delimiter);
+        output << "\n";
+      }
+      output.close();
+    }
+    
+  private:
+    Container<Type> values;
+  };
   
-//  class Measurer_crossing_dist
-//  {
-//  public:
-//    Measurer_crossing_dist
-//    (std::valarray<double> measure_at, std::size_t nr_particles = 0)
-//    : measure_at{ measure_at }
-//    , measure_value(measure_at.size())
-//    {
-//      for (std::size_t mm = 0; mm < measure_at.size(); ++mm)
-//        measure_value[mm].reserve(nr_particles);
-//    }
-//
-//    template <typename Subject, typename Getter>
-//    void update(Subject const& subject, Getter const& get)
-//    {
-//      for (auto const& part : subject.particles())
-//        for (std::size_t mm = 0; mm < measure_at.size(); ++mm)
-//          if ((part.state_new().position[0]-measure_at[mm]) *
-//              (part.state_old().position[0]-measure_at[mm]) <= 0.)
-//            measure_value[mm].push_back(get(part));
-//    }
-//
-//    std::size_t size(std::size_t mm) const
-//    { return measure_value[mm].size(); }
-//
-//    void print(FILE* fout) const
-//    {
-//      for (std::size_t mm = 0; mm < measure_at.size(); ++mm)
-//      {
-//        fprintf(fout, "%15.6e", measure_at[mm]);
-//        for (auto const& val : measure_value[mm])
-//          fprintf(fout, "%15.6e", val);
-//        fprintf(fout, "\n");
-//      }
-//    }
-//
-//    const std::valarray<double> measure_at;
-//
-//  private:
-//    std::vector<std::vector<double>> measure_value;
-//  };
-//
-//  class Measurer_dist
-//  {
-//  public:
-//    Measurer_dist
-//    (std::valarray<double> measure_at, std::size_t nr_particles = 0)
-//    : measure_at(measure_at)
-//    , measure_value(measure_at.size())
-//    {
-//      for (std::size_t tt = 0; tt < measure_at.size(); ++tt)
-//        measure_value[tt].reserve(nr_particles);
-//    }
-//
-//    template <typename Subject, typename Getter>
-//    void update(Subject const& subject, std::size_t mm, Getter get)
-//    {
-//      for (auto const& part : subject.particles())
-//        measure_value[mm].push_back(get(part));
-//    }
-//
-//    std::size_t size(std::size_t mm) const
-//    { return measure_value[mm].size(); }
-//
-//    void print(FILE* fout) const
-//    {
-//      for (std::size_t mm = 0; mm < measure_at.size(); ++mm)
-//      {
-//        fprintf(fout, "%15.6e", measure_at[mm]);
-//        for (auto const& val : measure_value[mm])
-//          fprintf(fout, "%15.6e", val);
-//        fprintf(fout, "\n");
-//      }
-//    }
-//
-//    const std::valarray<double> measure_at;
-//
-//  private:
-//    std::vector<std::vector<double>> measure_value;
-//  };
-//
-//  class Measurer_mean
-//  {
-//  public:
-//    Measurer_mean(std::valarray<double> measure_at)
-//    : measure_at(measure_at)
-//    , mean(measure_at.size())
-//    {}
-//
-//    template <typename Subject, typename Getter>
-//    void update(Subject const& subject, std::size_t mm, Getter get)
-//    {
-//      double val = 0.;
-//      for (auto const& part : subject.particles())
-//        val += get(part);
-//      mean[mm] = val/subject.nr_particles();
-//    }
-//
-//    std::size_t size(std::size_t mm) const
-//    { return mean.size(); }
-//
-//    void print(FILE* fout) const
-//    {
-//      for (std::size_t mm = 0; mm < measure_at.size(); ++mm)
-//        fprintf(fout, "%15.6e%15.6e\n", measure_at[mm], mean[mm]);
-//    }
-//
-//    const std::valarray<double> measure_at;
-//
-//  private:
-//    std::valarray<double> mean;
-//  };
-//
-//  class Measurer_crossing_total
-//  {
-//  public:
-//    Measurer_crossing_total_cprint
-//    (std::valarray<double> measure_at)
-//    : measure_at(measure_at)
-//    , measure_value(measure_at.size())
-//    {}
-//
-//    template <typename Subject, typename Getter>
-//    void update(Subject const& subject, Getter const& get)
-//    {
-//      for (auto const& part : subject.particles())
-//        for (std::size_t mm = 0; mm < measure_at.size(); ++mm)
-//          if ((part.state_new().position[0]-measure_at[mm]) *
-//              (part.state_old().position[0]-measure_at[mm]) <= 0.)
-//          {
-//            measure_value[mm] += get(part);
-//            ++counts[mm];
-//          }
-//    }
-//
-//    std::size_t size(std::size_t mm) const
-//    { return counts[mm]; }
-//
-//    void print(FILE* fout) const
-//    {
-//      for (std::size_t mm = 0; mm < measure_at.size(); ++mm)
-//        fprintf(fout, "%15.6e%15.6e\n", measure_at[mm],measure_value[mm]);
-//    }
-//
-//    const std::valarray<double> measure_at;
-//
-//  private:
-//    std::vector<double> measure_value;
-//    std::vector<std::size_t> counts{ std::vector<std::size_t>(measure_value.size()) };
-//  };
-//
-//  class Measurer_total
-//  {
-//  public:
-//    Measurer_total(std::valarray<double> measure_at)
-//    : measure_at(measure_at)
-//    , total(measure_at.size())
-//    {}
-//
-//    template <typename Subject, typename Getter>
-//    void update(Subject const& subject, std::size_t mm, Getter get)
-//    {
-//      for (auto const& part : subject.particles())
-//        total[mm] += get(part);
-//    }
-//
-//    std::size_t size(std::size_t mm) const
-//    { return total.size(); }
-//
-//    void print(FILE* fout) const
-//    {
-//      for (std::size_t mm = 0; mm < measure_at.size(); ++mm)
-//        fprintf(fout, "%15.6e%15.6e\n", measure_at[mm], total[mm]);
-//    }
-//
-//    const std::valarray<double> measure_at;
-//
-//  private:
-//    std::valarray<double> total;
-//  };
-//
-//  class Measurer_mean_variance
-//  {
-//  public:
-//    Measurer_mean_variance_cprint
-//    (std::valarray<double> measure_at)
-//    : measure_at(measure_at)
-//    , mean(measure_at.size())
-//    , variance(measure_at.size())
-//    {}
-//
-//    template <typename Subject, typename Getter>
-//    void update(Subject const& subject, std::size_t mm, Getter get)
-//    {
-//      double val;
-//      double val_mean = 0.;
-//      double val_mean_sq = 0.;
-//      for (auto const& part : subject.particles())
-//      {
-//        val = get(part);
-//        val_mean += val;
-//        val_mean_sq += val*val;
-//      }
-//      std::size_t nr_particles = subject.nr_particles();
-//      mean[mm] = val_mean/nr_particles;
-//      variance[mm] = val_mean_sq/nr_particles-mean[mm]*mean[mm];
-//    }
-//
-//    std::size_t size(std::size_t mm) const
-//    { return mean.size(); }
-//
-//    void print(FILE* fout) const
-//    {
-//      for (std::size_t mm = 0; mm < measure_at.size(); ++mm)
-//        fprintf(fout, "%20.12e%20.12e%20.12e\n", measure_at[mm], mean[mm], variance[mm]);
-//    }
-//
-//    const std::valarray<double> measure_at;
-//
-//  private:
-//    std::valarray<double> mean;
-//    std::valarray<double> variance;
-//  };
-//
-//  template<typename Target_type, typename Return_type>
-//  class Measurer_first_return
-//  {
-//  public:
-//    Measurer_first_return
-//    (Target_type target, std::size_t nr_particles,
-//     std::size_t nr_measures = 0, Return_type initial = 0.)
-//    : target{ target }
-//    , return_last(nr_particles, initial)
-//    {
-//      return_data.reserve(nr_measures);
-//    }
-//
-//    Measurer_first_return
-//    (Target_type target, std::size_t nr_particles,
-//     std::size_t nr_measures, std::vector<Return_type> initial)
-//    : target{ target }
-//    , return_last{ initial }
-//    {
-//      return_data.reserve(nr_measures);
-//    }
-//
-//    template
-//    <typename Subject, typename Getter_new, typename Getter_old,
-//    typename Getter_return_new, typename Getter_return_old>
-//    void update
-//    (Subject const& subject, Getter_new getter_new, Getter_old getter_old,
-//      Getter_return_new getter_return_new, Getter_return_old getter_return_old)
-//    {
-//      for (std::size_t pp = 0; pp < subject.nr_particles(); ++pp)
-//      {
-//        auto const& part = subject.particles(pp);
-//        auto val_new = getter_new(part);
-//        auto val_old = getter_old(part);
-//        if (val_new == target && val_old != target)
-//        {
-//          return_data.push_back(getter_return_new(part) - return_last[pp]);
-//          ++nr_counts;
-//        }
-//        else if (val_new != target && val_old == target)
-//        {
-//          return_last[pp] = getter_return_new(part);
-//        }
-//      }
-//    }
-//
-//    std::size_t counts()
-//    { return nr_counts; }
-//
-//    void print(FILE* fout) const
-//    {
-//      for (auto const& val : return_data)
-//        fprintf(fout, "%15.6e\n", val);
-//    }
-//
-//  private:
-//    const Target_type target;
-//    std::vector<Return_type> return_last;
-//    std::vector<Return_type> return_data;
-//    std::size_t nr_counts{ 0 };
-//  };
+  template <typename Type = double,
+  template<typename> typename Container = std::vector>
+  class Measurer_Store_Crossing
+  {
+  public:
+    Measurer_Store_Crossing
+    (std::vector<double> measure_points, std::size_t reserve = 0)
+    : measure_points{ measure_points }
+    , values(measure_points.size())
+    {
+      for (auto& val : values)
+        values.reserve(reserve);
+    }
+    
+    template <typename Cont>
+    Measurer_Store_Crossing
+    (Cont const& measure_points, std::size_t reserve = 0)
+    : values(measure_points.size())
+    {
+      for (auto const& val : measure_points)
+        this->measure_points.push_back(val);
+      for (auto& val : values)
+        val.reserve(reserve);
+    }
+
+    template <typename Subject, typename Getter,
+    typename Getter_Position = ctrw::Get_position_component<0>>
+    void update
+    (Subject const& subject, Getter const& get,
+     Getter_Position const& get_position = {})
+    {
+      for (auto const& part : subject.particles())
+        for (std::size_t mm = 0; mm < measure_points.size(); ++mm)
+          if ((get_position(part.state_new())-measure_points[mm])*
+              (get_position(part.state_old())-measure_points[mm]) <= 0.)
+            values[mm].push_back(get(part));
+    }
+
+    std::size_t size(std::size_t mm) const
+    { return values[mm].size(); }
+    
+    auto const& get() const
+    { return values; }
+
+    void print
+    (std::string const& filename,
+     int precision = 8, std::string delimiter = "\t") const
+    {
+      std::fstream output{ filename };
+      output << std::setprecision(precision)
+             << std::scientific;
+      for (std::size_t mm = 0; mm < measure_points.size(); ++mm)
+      {
+        output << measure_points[mm];
+        useful::print(output, values[mm], 1, delimiter);
+        output << "\n";
+      }
+      output.close();
+    }
+
+    const std::vector<double> measure_points;
+
+  private:
+    Container<Container<Type>> values;
+  };
+      
+  template <typename Type = double,
+  template<typename> typename Container = std::vector>
+  class Measurer_Store_Crossing_Total
+  {
+  public:
+    Measurer_Store_Crossing_Total
+    (std::vector<double> measure_points, std::size_t reserve = 0)
+    : measure_points{ measure_points }
+    , values(measure_points.size())
+    , nr_counts(measure_points.size())
+    {
+      for (auto& val : values)
+        val.reserve(reserve);
+    }
+    
+    template <typename Cont>
+    Measurer_Store_Crossing_Total
+    (Cont const& measure_points, std::size_t reserve = 0)
+    : values(measure_points.size())
+    , nr_counts(measure_points.size())
+    {
+      for (auto const& val : measure_points)
+        this->measure_points.push_back(val);
+      for (auto& val : values)
+        val.reserve(reserve);
+    }
+
+    template <typename Subject, typename Getter,
+    typename Getter_Position = ctrw::Get_position_component<0>>
+    void update
+    (Subject const& subject, Getter const& get,
+     Getter_Position const& get_position = {})
+    {
+      for (auto const& part : subject.particles())
+        for (std::size_t mm = 0; mm < measure_points.size(); ++mm)
+          if ((get_position(part.state_new())-measure_points[mm])*
+              (get_position(part.state_old())-measure_points[mm]) <= 0.)
+          {
+            if (nr_counts[mm] == 0)
+              values[mm] = get(part);
+            else
+              operation::plus_InPlace(values[mm], get(part));
+            ++nr_counts[mm];
+          }
+    }
+    
+    std::size_t counts(std::size_t mm) const
+    { return nr_counts[mm]; }
+    
+    auto const& get() const
+    { return values; }
+
+    void print
+    (std::string const& filename,
+     int precision = 8, std::string delimiter = "\t") const
+    {
+      std::fstream output{ filename };
+      output << std::setprecision(precision)
+             << std::scientific;
+      for (std::size_t mm = 0; mm < measure_points.size(); ++mm)
+      {
+        output << measure_points[mm];
+        useful::print(output, values[mm], 1, delimiter);
+        output << "\n";
+      }
+      output.close();
+    }
+
+    const std::vector<double> measure_points;
+
+  private:
+    Container<Type> values;
+    std::vector<std::size_t> nr_counts;
+  };
+      
+  template <typename Type = double,
+  template<typename> typename Container = std::vector>
+  class Measurer_Store_FirstCrossing
+  {
+  public:
+    Measurer_Store_FirstCrossing
+    (std::vector<double> measure_points, std::size_t reserve = 0)
+    : measure_points{ measure_points }
+    , values(measure_points.size())
+    , particles_crossed(measure_points.size())
+    {
+      for (auto& val : values)
+        val.reserve(reserve);
+    }
+    
+    template <typename Cont>
+    Measurer_Store_FirstCrossing
+    (Cont const& measure_points, std::size_t reserve = 0)
+    : values(measure_points.size())
+    , particles_crossed(measure_points.size())
+    {
+      for (auto const& val : measure_points)
+        this->measure_points.push_back(val);
+      for (auto& val : values)
+        val.reserve(reserve);
+    }
+
+    template <typename Subject, typename Getter,
+    typename Getter_Position = ctrw::Get_position_component<0>>
+    void update
+    (Subject const& subject, Getter const& get,
+     Getter_Position const& get_position = {})
+    {
+      for (auto const& part : subject.particles())
+        for (std::size_t mm = 0; mm < measure_points.size(); ++mm)
+          if ((get_position(part.state_new())-measure_points[mm])*
+              (get_position(part.state_old())-measure_points[mm]) <= 0.)
+            if (particles_crossed[mm].insert(part.state_new().tag))
+              values[mm].push_back(get(part));
+    }
+
+    std::size_t size(std::size_t mm) const
+    { return values[mm].size(); }
+    
+    auto const& get() const
+    { return values; }
+    
+    bool crossed(std::size_t mm, std::size_t part) const
+    { return particles_crossed[mm].count(part); };
+
+    void print
+    (std::string const& filename,
+     int precision = 8, std::string delimiter = "\t") const
+    {
+      std::fstream output{ filename };
+      output << std::setprecision(precision)
+             << std::scientific;
+      for (std::size_t mm = 0; mm < measure_points.size(); ++mm)
+      {
+        output << measure_points[mm];
+        useful::print(output, values[mm], 1, delimiter);
+        output << "\n";
+      }
+      output.close();
+    }
+
+    const std::vector<double> measure_points;
+
+  private:
+    Container<Container<Type>> values;
+    std::vector<std::unordered_set<std::size_t>> particles_crossed;
+  };
+      
+  template <typename Type = double,
+  template<typename> typename Container = std::vector>
+  class Measurer_Store_FirstCrossing_Total
+  {
+  public:
+    Measurer_Store_FirstCrossing_Total
+    (std::vector<double> measure_points, std::size_t reserve = 0)
+    : measure_points{ measure_points }
+    , values(measure_points.size())
+    , particles_crossed(measure_points.size())
+    {
+      for (auto& val : values)
+        val.reserve(reserve);
+    }
+    
+    template <typename Cont>
+    Measurer_Store_FirstCrossing_Total
+    (Cont const& measure_points, std::size_t reserve = 0)
+    : values(measure_points.size())
+    , particles_crossed(measure_points.size())
+    {
+      for (auto const& val : measure_points)
+        this->measure_points.push_back(val);
+      for (auto& val : values)
+        val.reserve(reserve);
+    }
+
+    template <typename Subject, typename Getter,
+    typename Getter_Position = ctrw::Get_position_component<0>>
+    void update
+    (Subject const& subject, Getter const& get,
+     Getter_Position const& get_position = {})
+    {
+      for (auto const& part : subject.particles())
+        for (std::size_t mm = 0; mm < measure_points.size(); ++mm)
+          if ((get_position(part.state_new())-measure_points[mm])*
+              (get_position(part.state_old())-measure_points[mm]) <= 0.)
+            if (particles_crossed[mm].insert(part.state_new().tag))
+            {
+              if (particles_crossed[mm].size() == 0)
+                values[mm] = get(part);
+              else
+                operation::plus_InPlace(values[mm], get(part));
+            }
+    }
+    
+    std::size_t counts(std::size_t mm) const
+    { return particles_crossed[mm].size(); }
+    
+    auto const& get() const
+    { return values; }
+    
+    bool crossed(std::size_t mm, std::size_t part) const
+    { return particles_crossed[mm].count(part); };
+
+    void print
+    (std::string const& filename,
+     int precision = 8, std::string delimiter = "\t") const
+    {
+      std::fstream output{ filename };
+      output << std::setprecision(precision)
+             << std::scientific;
+      for (std::size_t mm = 0; mm < measure_points.size(); ++mm)
+      {
+        output << measure_points[mm];
+        useful::print(output, values[mm], 1, delimiter);
+        output << "\n";
+      }
+      output.close();
+    }
+
+    const std::vector<double> measure_points;
+
+  private:
+    Container<Type> values;
+    std::vector<std::unordered_set<std::size_t>> particles_crossed;
+  };
 }
 
 #endif /* Measurer_CTRW_h */

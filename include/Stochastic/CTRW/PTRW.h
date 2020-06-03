@@ -89,6 +89,18 @@ namespace ctrw
 
 		Container const& particles(std::size_t part) const
 		{ return ctrw.particles(part); }
+    
+    auto cbegin() const
+    { return ctrw.cbegin(); }
+
+    auto cend() const
+    { return ctrw.cbegin(); }
+    
+    auto begin() const
+    { return ctrw.begin(); }
+
+    auto end() const
+    { return ctrw.begin(); }
 
 		std::size_t size() const
 		{ return ctrw.size(); }

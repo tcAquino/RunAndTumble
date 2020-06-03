@@ -19,8 +19,8 @@ namespace bacteria
 {
   namespace output_standard
   {
-    using Measurer_Particle = ctrw::Measurer_state;
-    using Measurer_Field = field::Measurer_scalar;
+    using Measurer_Particle = ctrw::Measurer_State;
+    using Measurer_Field = field::Measurer;
     
     struct OutputState
     {

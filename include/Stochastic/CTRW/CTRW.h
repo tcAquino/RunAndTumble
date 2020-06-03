@@ -176,6 +176,13 @@ namespace ctrw
 
     auto cend() const
     { return particle_container.cbegin(); }
+    
+    auto begin() const
+    { return particle_container.cbegin(); }
+
+    auto end() const
+    { return particle_container.cbegin(); }
+
 
   private:
     Container particle_container;

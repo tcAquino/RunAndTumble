@@ -11,29 +11,16 @@
 #define USEFUL_H_
 
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <string>
 #include <functional>
 #include <utility>
+#include <type_traits>
 
 namespace useful
 {
-  std::size_t factorial(std::size_t nn)
-  {
-    if (nn == 0)	 return 1;
-    return nn * factorial(nn - 1);
-  }
-
-  std::size_t factorial_incomplete(std::size_t nn, std::size_t mm)
-  {
-    std::size_t result = 1.;
-    ++nn;
-    for (std::size_t ii = 0; ii < mm && nn --> 0; ++ii) result *= nn;
-
-    return result;
-  }
-
   // Check if container contains val
   // Warning: container must be sorted
   template <typename T, typename U>
@@ -47,6 +34,72 @@ namespace useful
     
     return it != container.end() && *it == val;
   }
+  
+  // From Anton Dyachenko's answer here:
+  // https://stackoverflow.com/questions/6534041/how-to-check-whether-operator-exists
+  template <class T, class R, class ... Args>
+  std::is_convertible<std::invoke_result_t<T, Args...>, R> is_invokable_test(int);
+  template <class T, class R, class ... Args>
+  std::false_type is_invokable_test(...);
+  template <class T, class R, class ... Args>
+  using is_invokable = decltype(is_invokable_test<T, R, Args...>(0));
+  template <class T, class R, class ... Args>
+  constexpr auto is_invokable_v = is_invokable<T, R, Args...>::value;
+  
+  template <class L, class R = L>
+  using has_equality = is_invokable<std::equal_to<>, bool, L, R>;
+  template <class L, class R = L>
+  constexpr auto has_equality_v = has_equality<L, R>::value;
+  
+  template <class L, class R = L>
+  using has_plus = is_invokable<std::plus<>, bool, L, R>;
+  template <class L, class R = L>
+  constexpr auto has_plus_v = has_plus<L, R>::value;
+  
+  template <class L, class R = L>
+  using has_minus = is_invokable<std::minus<>, bool, L, R>;
+  template <class L, class R = L>
+  constexpr auto has_minus_v = has_minus<L, R>::value;
+  
+  template <class L, class R = L>
+  using has_multiplies = is_invokable<std::multiplies<>, bool, L, R>;
+  template <class L, class R = L>
+  constexpr auto has_multiplies_v = has_multiplies<L, R>::value;
+  
+  template <class L, class R = L>
+  using has_divides = is_invokable<std::divides<>, bool, L, R>;
+  template <class L, class R = L>
+  constexpr auto has_divides_v = has_divides<L, R>::value;
+  
+  // From Passer By's answer here:
+  // https://stackoverflow.com/questions/51404763/c-compile-time
+  // -check-that-an-overloaded-function-can-be-called-with-a-certain
+  template <typename = void, typename... Args>
+  struct can_call_sqrt : std::false_type {};
+  template <typename... Args>
+  struct can_call_sqrt<
+  std::void_t<decltype(std::sqrt(std::declval<Args>()...))>, Args...>
+  : std::true_type {};
+  template <typename... Args>
+  inline constexpr bool can_call_sqrt_v = can_call_sqrt<void, Args...>::value;
+  
+  template <typename = void, typename... Args>
+  struct can_call_abs : std::false_type {};
+  template <typename... Args>
+  struct can_call_abs<
+  std::void_t<decltype(std::abs(std::declval<Args>()...))>, Args...>
+  : std::true_type {};
+  template <typename... Args>
+  inline constexpr bool can_call_abs_v = can_call_abs<void, Args...>::value;
+  
+  template <typename Stream, typename = void, typename... Args>
+  struct can_output : std::false_type {};
+  template <typename Stream, typename... Args>
+  struct can_output<Stream,
+  std::void_t<decltype(std::abs(std::declval<Args>()...))>, Args...>
+  : std::true_type {};
+  template <typename Stream, typename... Args>
+  inline constexpr bool can_output_v = can_output<Stream, void, Args...>::value;
   
   template <typename T, typename U, typename Comp_less, typename Comp_eq>
   bool contains
@@ -94,13 +147,24 @@ namespace useful
   };
   
   template <typename Stream, typename Container>
-  void print(Stream& stream, Container const& container, bool delimit_first = 0, std::string delimiter = "\t")
+  void print
+  (Stream& stream, Container const& container,
+   bool delimit_first = 0, std::string delimiter = "\t")
   {
-    std::string delim = delimit_first ? delimiter : "";
-    for (auto const& val : container)
+    if constexpr (can_output_v<Stream, Container>)
     {
-      stream << delim << val;
-      delim = delimiter;
+      if (delimit_first)
+        stream << delimiter;
+      stream << container;
+    }
+    else
+    {
+      std::string delim = delimit_first ? delimiter : "";
+      for (auto const& val : container)
+      {
+        stream << delim << val;
+        delim = delimiter;
+      }
     }
   }
   
@@ -228,7 +292,7 @@ namespace useful
   { return obj; }
 
   // Simple hash for a container by combining element hashes
-  template<typename Container>
+  template <typename Container>
   struct hash_container
   {
     std::size_t operator()(Container const& container) const
@@ -320,20 +384,20 @@ namespace useful
   //	To check if a class has a method
   //	From here: https://stackoverflow.com/questions/29772601/why-is-sfinae-causing-failure-when-there-are-two-functions-with-different-signat
   //	bundle of types
-  template<class...>struct types{using type=types;};
-  template<class...>struct voider{using type=void;};
+  template <class...> struct types{using type=types;};
+  template <class...> struct voider{using type=void;};
   //	Some dists still do not to have void_t
-  template<class...Ts>using void_t=typename voider<Ts...>::type;
+  template <class...Ts> using void_t=typename voider<Ts...>::type;
   //	hide the SFINAE stuff in a details namespace:
   namespace details
   {
-    template<template<class...>class Z, class types, class=void>
+    template <template <class...> class Z, class types, class=void>
     struct has_method : std::false_type {};
-    template<template<class...>class Z, class...Ts>
+    template <template <class...> class Z, class...Ts>
     struct has_method<Z,types<Ts...>,void_t<Z<Ts...>>>:std::true_type{};
   }
-  // has_method<template, types...> is true iff template<types...> is valid
-  template<template<class...>class Z, class...Ts>
+  // has_method<template, types...> is true iff template <types...> is valid
+  template <template <class...> class Z, class...Ts>
   using has_method=details::has_method<Z,types<Ts...>>;
 
   // Implemented here because some versions of gcc have trouble with the standard one

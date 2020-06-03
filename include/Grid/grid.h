@@ -24,7 +24,8 @@ namespace grid
 {
   template
   <typename value_t,
-  typename Position_t = std::vector<double>, typename Index_t = std::vector<std::size_t>>
+  typename Position_t = std::vector<double>,
+  typename Index_t = std::vector<std::size_t>>
   class RegularGrid : public useful::MultiArray<value_t>
   {
   public:
@@ -124,21 +125,22 @@ namespace grid
 
   private:
     mutable index_type index{ index_type(corner.size()) };
-    mutable position_type position_helper{ position_type(corner.size()) };
+    mutable position_type position_helper{
+      position_type(corner.size()) };
     const std::vector<position_type> cell_centers;
     double volume{ operation::prod(lengths) };
 
     auto compute_cell_centers()
     {
       auto centers = decltype(cell_centers){};
-      std::vector<double> corner_plus_half_cell{ operation::plus(corner,
-                                                            operation::div_scalar(lengths, 2.)) };
+      std::vector<double> corner_plus_half_cell{
+        operation::plus(corner,
+          operation::div_scalar(lengths, 2.)) };
       for (std::size_t cell = 0; cell < this->size(); ++cell)
       {
         this->computeIndexes(cell, index);
-        centers.push_back(
-                               operation::plus(operation::times(lengths, index),
-                                               corner_plus_half_cell));
+        centers.push_back(operation::plus(operation::times(
+          lengths, index), corner_plus_half_cell));
       }
       return centers;
     }
@@ -159,6 +161,8 @@ namespace grid
     const SearchParams kdtree_search_params;
     KDTreeAdaptor kdtree;
     
+    using Pair = std::pair<std::size_t, double>;
+    
     KDTree_Grid
     (Grid const& grid,
      SearchParams kdtree_search_params = { 32, 0., false },
@@ -172,11 +176,12 @@ namespace grid
     { return grid.size(); }
     
     template <typename Position>
-    std::pair<std::size_t, double> nearest_neighbor
+    Pair nearest_neighbor
     (Position const& position) const
     {
       std::pair<std::size_t, double> idx_dist_sq;
-      kdtree.knnSearch( &(position[0]), 1, &idx_dist_sq.first, &idx_dist_sq.second);
+      kdtree.knnSearch(&(position[0]), 1, &idx_dist_sq.first,
+        &idx_dist_sq.second);
       
       return idx_dist_sq;
     }
@@ -184,9 +189,10 @@ namespace grid
     template <typename Position>
     std::size_t radiusSearch
     (Position const& position, double radius_sq,
-                 std::vector<std::pair<std::size_t, double>> &indices_dists_sq) const
+     std::vector<Pair> &indices_dists_sq) const
     {
-      return kdtree.radiusSearch(&(position[0]), radius_sq, indices_dists_sq, kdtree_search_params);
+      return kdtree.radiusSearch(&(position[0]), radius_sq,
+        indices_dists_sq, kdtree_search_params);
     }
     
     template <typename Shape>
@@ -208,7 +214,7 @@ namespace grid
     (Shape const& shape, std::vector<std::size_t>& indices,
      useful::Selector_t<shape::Paralleliped<>>) const
     {
-      std::vector<std::pair<size_t,double>> near_center;
+      std::vector<Pair> near_center;
       double radius_sq = operation::abs_sq(shape.half_dimensions);
       radiusSearch(shape.center, radius_sq, near_center);
       
@@ -253,15 +259,12 @@ namespace grid
       std::sort(near_center.begin(), near_center.end());
 
       for (std::size_t idx = 0; idx < grid.size(); ++idx)
-        if (!useful::
-            contains(near_center, idx,
-                              [](std::pair<size_t,double> const& elem, std::size_t val)
-                              { return elem.first < val; },
-                              [](std::pair<size_t,double> const& elem, std::size_t val)
-                              { return elem.first == val; }))
-        {
+        if (!useful::contains(near_center, idx,
+            [](std::pair<size_t,double> const& elem, std::size_t val)
+            { return elem.first < val; },
+            [](std::pair<size_t,double> const& elem, std::size_t val)
+            { return elem.first == val; }))
           indices.push_back(idx);
-        }
     }
     
     // Methods for kdtree class
@@ -315,16 +318,18 @@ namespace grid
       std::pair<std::size_t, double> idx_dist_sq;
       nanoflann::KNNResultSet<double> resultSet(1);
       resultSet.init(&idx_dist_sq.first, &idx_dist_sq.second);
-      kdtree.findNeighbors(resultSet, &position[0], kdtree_search_params);
+      kdtree.findNeighbors(resultSet, &position[0],
+        kdtree_search_params);
       
       return idx_dist_sq;
     }
     
     std::size_t radiusSearch
     (std::vector<double> const& position, double radius_sq,
-                 std::vector<std::pair<std::size_t, double>> &indices_dists_sq) const
+     std::vector<std::pair<std::size_t, double>> &indices_dists_sq) const
     {
-      return kdtree.radiusSearch(&(position[0]), radius_sq, indices_dists_sq, kdtree_search_params);
+      return kdtree.radiusSearch(&(position[0]),
+        radius_sq, indices_dists_sq, kdtree_search_params);
     }
     
     // Methods for kdtree class
@@ -399,7 +404,8 @@ namespace grid
   template <typename Grid>
   void print_centers
   (Grid const& grid, std::vector<std::size_t> const& points,
-   std::string const& filename, int precision = 8, std::string delimiter = "\t")
+   std::string const& filename, int precision = 8,
+   std::string delimiter = "\t")
   {
     std::fstream output{ filename };
     output << std::setprecision(precision);

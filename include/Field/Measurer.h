@@ -15,11 +15,11 @@
 
 namespace field
 {
-  class Measurer_scalar
+  class Measurer
   {
   public:
-    Measurer_scalar
-    (std::string filename,
+    Measurer
+    (std::string const& filename,
      int precision = 8, std::string delimiter = "\t")
     : output{ filename }
     , delimiter{ delimiter }
@@ -31,18 +31,29 @@ namespace field
           "Could not open file " + filename + "for writing" };
     }
       
-    ~Measurer_scalar()
+    ~Measurer()
     { output.close(); }
       
-    template <typename Field, typename Value>
+    template <typename Field, typename Container>
     void operator()
-    (Field const& field, std::vector<std::size_t> const& points,
+    (Field const& field, Container const& points)
+    {
+      bool delim = 0;
+      for (auto idx : points)
+      {
+        useful::print(output, field[idx], delim, delimiter);
+        delim = 1;
+      }
+      output << "\n";
+    }
+      
+    template <typename Field, typename Value, typename Container>
+    void operator()
+    (Field const& field, Container const& points,
      Value tag)
     {
-      output << tag;
-      for (auto idx : points)
-        output << delimiter << field[idx];
-      output << "\n";
+      output << tag << delimiter;
+      (*this)(field, points);
     }
     
   private:
