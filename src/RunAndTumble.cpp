@@ -24,7 +24,7 @@
 int main(int argc, const char * argv[])
 {
   using namespace bacteria;
-	using namespace model_test;
+  using namespace model_test;
   using namespace domain_test_ring;
   using namespace initial_condition_particles_line_ring;
   using namespace initial_condition_fields_constant;
@@ -44,7 +44,7 @@ int main(int argc, const char * argv[])
   }
   
   std::cout << "Getting parameters...\n";
-  if (argc < 3 || argc > 5)
+  if (argc < 2 || argc > 5)
     throw std::invalid_argument{ "Inappropriate parameters" };
   
   std::size_t arg = 1;
@@ -93,8 +93,8 @@ int main(int argc, const char * argv[])
   
   std::cout << "Setting up grid...\n";
   auto domain = make_domain(parameters_Domain);
-  std::vector<double> discretization_length = operation::div(domain_dimensions,
-    parameters_Discretization.nr_grid_cells);
+  std::vector<double> discretization_length = operation::div(
+    domain_dimensions, parameters_Discretization.nr_grid_cells);
   std::vector<std::size_t> discretization_nr_padded =
     operation::plus_scalar(parameters_Discretization.nr_grid_cells, 2);
   std::vector<double> domain_corner = operation::minus(domain.box.center,
@@ -211,47 +211,46 @@ int main(int argc, const char * argv[])
   std::vector<std::unique_ptr<Measurer_Particle>> measurer_particle;
   if (parameters_Output.output_particle)
     measurer_particle.push_back(std::make_unique<Measurer_Particle>(
-        directory_data + "/Data_particle_state_" + model_name + domain_name +
-        initial_condition_particles_name + initial_condition_fields_name +
-        parameter_set_name + std::to_string(run_nr) + ".dat"));
+      directory_data + "/Data_particle_state_" + model_name + "_" +
+      domain_name + "_" + initial_condition_particles_name + "_" +
+      initial_condition_fields_name + "_" +
+      parameter_set_name + "_" + std::to_string(run_nr) + ".dat"));
   
   std::vector<std::unique_ptr<Measurer_Field>> measurer_field;
+  if (parameters_Output.output_nutrient)
+    measurer_field.push_back(std::make_unique<Measurer_Field>(
+      directory_data + "/Data_nutrient_" + model_name + "_" +
+      domain_name + "_" + initial_condition_particles_name + "_" +
+      initial_condition_fields_name + "_" +
+      parameter_set_name + "_" + std::to_string(run_nr) + ".dat"));
   if (parameters_Output.output_chemoattractant
       && chemoattractant)
     measurer_field.push_back(std::make_unique<Measurer_Field>(
-        directory_data + "/Data_nutrient_" + model_name + domain_name +
-        initial_condition_particles_name + initial_condition_fields_name +
-        parameter_set_name + std::to_string(run_nr) + ".dat"));
-  if (parameters_Output.output_chemoattractant
-      && chemoattractant)
-    measurer_field.push_back(std::make_unique<Measurer_Field>(
-        directory_data + "/Data_chemoattractant_" + model_name + domain_name +
-        initial_condition_particles_name + initial_condition_fields_name +
-        parameter_set_name + std::to_string(run_nr) + ".dat"));
+      directory_data + "/Data_chemoattractant_" + model_name + "_" +
+      domain_name + "_" + initial_condition_particles_name + "_" +
+      initial_condition_fields_name + "_" +
+      parameter_set_name + "_" + std::to_string(run_nr) + ".dat"));
   
   std::cout << std::setprecision(2) << std::scientific;
   std::cout << "\tDone!\n";
   
   if (parameters_Output.output_grid)
   {
-    std::string filename_grid_void{
-      directory_data + "/Data_grid_void_" + directory_data +
-      domain_name + parameter_set_name + ".dat" };
-    std::string filename_grid_solid{
-      directory_data + "/Data_grid_solid_" + directory_data +
-      domain_name + parameter_set_name + ".dat" };
-    std::cout << "Outputing grid structure...\n";
-    grid::print_centers(grid, void_solid.voids(), filename_grid_void);
-    grid::print_centers(grid, void_solid.solids(), filename_grid_solid);
+    std::cout << "Outputing grid structure...\n";;
+    grid::print_centers(grid, void_solid.voids(),
+      directory_data + "/Data_grid_void_" + directory_data + "_" +
+      domain_name + "_" + parameter_set_name + ".dat");
+    grid::print_centers(grid, void_solid.solids(),
+      directory_data + "/Data_grid_solid_" + directory_data + "_" +
+      domain_name + "_" + parameter_set_name + ".dat");
     std::cout << "\tDone!\n";
   }
   
   std::cout << "Starting dynamics...\n";
-  for (std::size_t tt = 0; tt < measure_times.size(); ++tt)
+  for (auto time : measure_times)
   {
-    double time = measure_times[tt];
-    std::cout << "\ttime = " << time
-              << "maximum = " << measure_times.back();
+    std::cout << "\ttime = " << time << "\t"
+              << "maximum = " << measure_times.back() << "\n";
     while (ptrw.time() < time)
     {
       ptrw.step();
@@ -269,7 +268,8 @@ int main(int argc, const char * argv[])
       (*measurer_particle[ii])(ptrw, OutputState{}, time,
         Measurer_Particle::New{});
     for (std::size_t ii = 0; ii < measurer_field.size(); ++ii)
-      (*measurer_field[ii])(concentration_fields[ii], void_solid.voids(), time);
+      (*measurer_field[ii])(concentration_fields[ii],
+        void_solid.voids(), time);
   }
   std::cout << "\tDone!\n";
   

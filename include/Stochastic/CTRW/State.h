@@ -257,7 +257,7 @@ namespace ctrw
     Tag_type tag;
   };
   
-  template <typename Orientation_t, typename Tag_t = useful::Empty,
+  template <typename Orientation_t = double, typename Tag_t = std::size_t,
   typename Position_t = std::vector<double>>
   struct State_RunTumble_PTRW
   {

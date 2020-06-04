@@ -49,15 +49,14 @@ namespace field
       
     template <typename Field, typename Value, typename Container>
     void operator()
-    (Field const& field, Container const& points,
-     Value tag)
+    (Field const& field, Container const& points, Value tag)
     {
       output << tag << delimiter;
       (*this)(field, points);
     }
     
   private:
-    std::fstream output;
+    std::ofstream output;
     std::string delimiter;
   };
 }

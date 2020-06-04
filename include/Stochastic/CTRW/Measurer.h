@@ -52,10 +52,7 @@ namespace ctrw
       for (auto const& part : ctrw.particles())
       {
         if (delim)
-        {
           output << delimiter;
-          delim = 1;
-        }
         output_state(part.state_new(), output, delimiter);
         delim = 1;
       }
@@ -85,10 +82,7 @@ namespace ctrw
       for (auto const& part : ctrw.particles())
       {
         if (delim)
-        {
           output << delimiter;
-          delim = 1;
-        }
         output_state(part.state_new(), output, delimiter);
         output << delimiter;
         output_state(part.state_old(), output, delimiter);
@@ -107,7 +101,7 @@ namespace ctrw
     }
     
   private:
-    std::fstream output;
+    std::ofstream output;
     std::string delimiter;
   };
       
@@ -317,14 +311,12 @@ namespace ctrw
     (std::string const& filename, int precision = 8,
      std::string delimiter = "\t")
     {
-      std::fstream output{ filename };
+      std::ofstream output{ filename };
       output << std::setprecision(precision)
              << std::scientific;
       for (auto const& val : values)
-      {
         useful::print(output, val, 0, delimiter);
-        output << "\n";
-      }
+      output << "\n";
     }
     
     template <typename Cont>
@@ -332,15 +324,15 @@ namespace ctrw
     (std::string const& filename, Cont const& measure_points,
      int precision = 8, std::string delimiter = "\t")
     {
-      std::fstream output{ filename };
+      std::ofstream output{ filename };
       output << std::setprecision(precision)
              << std::scientific;
       for (std::size_t mm = 0; mm < measure_points.size(); ++mm)
       {
         output << measure_points[mm];
         useful::print(output, values[mm], 1, delimiter);
-        output << "\n";
       }
+      output << "\n";
     }
     
   private:
@@ -377,7 +369,7 @@ namespace ctrw
     (std::string const& filename, int precision = 8,
      std::string delimiter = "\t")
     {
-      std::fstream output{ filename };
+      std::ofstream output{ filename };
       output << std::setprecision(precision)
              << std::scientific;
       for (auto const& val : values)
@@ -392,7 +384,7 @@ namespace ctrw
     (std::string const& filename, Cont const& measure_points,
      int precision = 8, std::string delimiter = "\t")
     {
-      std::fstream output{ filename };
+      std::ofstream output{ filename };
       output << std::setprecision(precision)
              << std::scientific;
       for (std::size_t mm = 0; mm < measure_points.size(); ++mm)
@@ -454,7 +446,7 @@ namespace ctrw
     (std::string const& filename,
      int precision = 8, std::string delimiter = "\t") const
     {
-      std::fstream output{ filename };
+      std::ofstream output{ filename };
       output << std::setprecision(precision)
              << std::scientific;
       for (std::size_t mm = 0; mm < measure_points.size(); ++mm)
@@ -529,7 +521,7 @@ namespace ctrw
     (std::string const& filename,
      int precision = 8, std::string delimiter = "\t") const
     {
-      std::fstream output{ filename };
+      std::ofstream output{ filename };
       output << std::setprecision(precision)
              << std::scientific;
       for (std::size_t mm = 0; mm < measure_points.size(); ++mm)
@@ -609,7 +601,7 @@ namespace ctrw
     (std::string const& filename,
      int precision = 8, std::string delimiter = "\t") const
     {
-      std::fstream output{ filename };
+      std::ofstream output{ filename };
       output << std::setprecision(precision)
              << std::scientific;
       for (std::size_t mm = 0; mm < measure_points.size(); ++mm)
@@ -688,7 +680,7 @@ namespace ctrw
     (std::string const& filename,
      int precision = 8, std::string delimiter = "\t") const
     {
-      std::fstream output{ filename };
+      std::ofstream output{ filename };
       output << std::setprecision(precision)
              << std::scientific;
       for (std::size_t mm = 0; mm < measure_points.size(); ++mm)

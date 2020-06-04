@@ -50,7 +50,7 @@ namespace bacteria
     ctrw::Reaction_GridConcentrationDecay_ParticleNr_GridConcentration;
 
   // Particle tracking
-  using State = ctrw::State_RunTumble_PTRW<double, std::size_t>;
+  using State = ctrw::State_RunTumble_PTRW<>;
   using Particle = ctrw::Particle<State>;
   using JumpGenerator = ctrw::JumpGenerator_JumpAngle_2d;
   using CTRW = ctrw::CTRW<State>;
@@ -86,6 +86,7 @@ namespace bacteria
         if (!file.is_open())
           throw std::runtime_error{ "Could not open " +
             filename + " for reading" };
+        nr_grid_cells.resize(dim);
         file >> time_step;
         for (std::size_t dd = 0; dd < dim; ++dd )
           file >> nr_grid_cells[dd];
@@ -120,8 +121,8 @@ namespace bacteria
       
       static void print_parameter_list()
       {
-        printf("EulerianFields parameters:\n"
-               "\tnutrient_diffusion : Nutrient diffusion coefficient\n");
+        std::cout << "EulerianFields parameters:\n"
+                  << "\tnutrient_diffusion : Nutrient diffusion coefficient\n";
       }
     };
     
