@@ -86,10 +86,10 @@ namespace ctrw
     double time() const
     { return current_time; }
 
-		Container particles() const
+		auto const& particles() const
 		{ return ctrw.particles(); }
 
-		Particle particles(std::size_t part) const
+		auto const& particles(std::size_t part) const
 		{ return ctrw.particles(part); }
     
     auto cbegin() const

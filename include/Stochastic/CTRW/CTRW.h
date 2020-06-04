@@ -162,10 +162,10 @@ namespace ctrw
           part.Transition(transitions_particle);
     }
 
-    Container particles() const
+    Container const& particles() const
     { return particle_container; }
 
-    Particle particles(std::size_t part) const
+    Particle const& particles(std::size_t part) const
     { return particle_container[part]; }
 
     std::size_t size() const
