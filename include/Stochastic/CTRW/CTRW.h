@@ -22,15 +22,16 @@ namespace ctrw
   // State_t characterizes each particle's state
   // Note:
   //    Order of particles in container is not preserved by removal methods
-  //    Iterators and references are invalidated when removing or adding
+  //    Iterators and references can be invalidated when removing or adding
   template <typename State_t>
   class CTRW
   {
   public:
-    using State = State_t;                           // Particle state
-    using Particle = ctrw::Particle<State>;          // Particle type
-    using Container = std::vector<Particle>;         // Set of particles
-    struct Tag{};                                    // To select constructors
+    using State = State_t;                   // Particle state
+    using Particle = ctrw::Particle<State>;  // Particle type
+    using Container = std::vector<Particle>; // Set of particles
+    struct Tag{};                            // To select constructor
+                                             // for tagging particles
 
     CTRW()
     {}
