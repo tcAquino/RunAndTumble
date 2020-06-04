@@ -62,13 +62,13 @@ namespace ctrw
       current_time += time_step;
     }
 
-    void evolve_by_particle(Time time_max)
+    void evolve(Time time_max)
     {
       ctrw.evolve_time(time_max, transitions);
       current_time = time_max;
     }
     
-    void evolve(Time time_max)
+    void evolve_by_step(Time time_max)
     {
       while (current_time < time_max)
         step();
