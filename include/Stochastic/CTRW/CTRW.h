@@ -122,7 +122,7 @@ namespace ctrw
     {
       evolve
       ([time_to](Particle const& part)
-       { return part.State_new().time < time_to; }, transitions_particle);
+       { return part.state_new().time < time_to; }, transitions_particle);
     }
 
     // Particles make transitions until their time is >= time_to
@@ -132,7 +132,7 @@ namespace ctrw
     {
       evolve
       ([length_to](Particle const& part)
-      { return part.State_new().position < length_to; }, transitions_particle);
+      { return part.state_new().position < length_to; }, transitions_particle);
     }
 
     // Particles make transitions until a given (particle-based) criterium is met
@@ -142,7 +142,7 @@ namespace ctrw
     {
       for (auto& part : particle_container)
         while(criterium(part))
-          part.Transition(transitions_particle);
+          part.transition(transitions_particle);
     }
 
     // Particles make one transition
@@ -162,10 +162,10 @@ namespace ctrw
           part.Transition(transitions_particle);
     }
 
-    Container const& particles() const
+    Container particles() const
     { return particle_container; }
 
-    Particle const& particles(std::size_t part) const
+    Particle particles(std::size_t part) const
     { return particle_container[part]; }
 
     std::size_t size() const
@@ -175,13 +175,13 @@ namespace ctrw
     { return particle_container.cbegin(); }
 
     auto cend() const
-    { return particle_container.cbegin(); }
+    { return particle_container.cend(); }
     
     auto begin() const
     { return particle_container.cbegin(); }
 
     auto end() const
-    { return particle_container.cbegin(); }
+    { return particle_container.cend(); }
 
 
   private:

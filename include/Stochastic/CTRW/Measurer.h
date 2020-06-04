@@ -288,8 +288,7 @@ namespace ctrw
       const std::string delimiter;
   };
       
-  template <typename Type = double,
-  template<typename> typename Container = std::vector>
+  template <typename Type = double>
   class Measurer_Store_Total
   {
   public:
@@ -345,11 +344,10 @@ namespace ctrw
     }
     
   private:
-    Container<Type> values;
+    std::vector<Type> values;
   };
       
-  template <typename Type = double,
-  template<typename> typename Container = std::vector>
+  template <typename Type = double>
   class Measurer_Store_Mean
   {
   public:
@@ -407,11 +405,10 @@ namespace ctrw
     }
     
   private:
-    Container<Type> values;
+    std::vector<Type> values;
   };
   
-  template <typename Type = double,
-  template<typename> typename Container = std::vector>
+  template <typename Type = double>
   class Measurer_Store_Crossing
   {
   public:
@@ -421,16 +418,15 @@ namespace ctrw
     , values(measure_points.size())
     {
       for (auto& val : values)
-        values.reserve(reserve);
+        val.reserve(reserve);
     }
     
-    template <typename Cont>
+    template <typename Container>
     Measurer_Store_Crossing
-    (Cont const& measure_points, std::size_t reserve = 0)
-    : values(measure_points.size())
+    (Container const& measure_points, std::size_t reserve = 0)
+    : measure_points{ get_measure_points(measure_points) }
+    , values(measure_points.size())
     {
-      for (auto const& val : measure_points)
-        this->measure_points.push_back(val);
       for (auto& val : values)
         val.reserve(reserve);
     }
@@ -473,11 +469,19 @@ namespace ctrw
     const std::vector<double> measure_points;
 
   private:
-    Container<Container<Type>> values;
+    std::vector<std::vector<Type>> values;
+    
+    template <typename Container>
+    auto get_measure_points(Container const& measure_points_in)
+    {
+      std::vector<double> measure_points;
+      for (auto const& val : measure_points)
+        measure_points.push_back(val);
+      return measure_points;
+    }
   };
       
-  template <typename Type = double,
-  template<typename> typename Container = std::vector>
+  template <typename Type = double>
   class Measurer_Store_Crossing_Total
   {
   public:
@@ -486,22 +490,15 @@ namespace ctrw
     : measure_points{ measure_points }
     , values(measure_points.size())
     , nr_counts(measure_points.size())
-    {
-      for (auto& val : values)
-        val.reserve(reserve);
-    }
+    {}
     
-    template <typename Cont>
+    template <typename Container>
     Measurer_Store_Crossing_Total
-    (Cont const& measure_points, std::size_t reserve = 0)
-    : values(measure_points.size())
+    (Container const& measure_points, std::size_t reserve = 0)
+    : measure_points{ get_measure_points(measure_points) }
+    , values(measure_points.size())
     , nr_counts(measure_points.size())
-    {
-      for (auto const& val : measure_points)
-        this->measure_points.push_back(val);
-      for (auto& val : values)
-        val.reserve(reserve);
-    }
+    {}
 
     template <typename Subject, typename Getter,
     typename Getter_Position = ctrw::Get_position_component<0>>
@@ -547,12 +544,20 @@ namespace ctrw
     const std::vector<double> measure_points;
 
   private:
-    Container<Type> values;
+    std::vector<Type> values;
     std::vector<std::size_t> nr_counts;
+    
+    template <typename Container>
+    auto get_measure_points(Container const& measure_points_in)
+    {
+      std::vector<double> measure_points;
+      for (auto const& val : measure_points)
+        measure_points.push_back(val);
+      return measure_points;
+    }
   };
       
-  template <typename Type = double,
-  template<typename> typename Container = std::vector>
+  template <typename Type = double>
   class Measurer_Store_FirstCrossing
   {
   public:
@@ -566,14 +571,13 @@ namespace ctrw
         val.reserve(reserve);
     }
     
-    template <typename Cont>
+    template <typename Container>
     Measurer_Store_FirstCrossing
-    (Cont const& measure_points, std::size_t reserve = 0)
-    : values(measure_points.size())
+    (Container const& measure_points, std::size_t reserve = 0)
+    : measure_points{ get_measure_points(measure_points) }
+    , values(measure_points.size())
     , particles_crossed(measure_points.size())
     {
-      for (auto const& val : measure_points)
-        this->measure_points.push_back(val);
       for (auto& val : values)
         val.reserve(reserve);
     }
@@ -588,7 +592,7 @@ namespace ctrw
         for (std::size_t mm = 0; mm < measure_points.size(); ++mm)
           if ((get_position(part.state_new())-measure_points[mm])*
               (get_position(part.state_old())-measure_points[mm]) <= 0.)
-            if (particles_crossed[mm].insert(part.state_new().tag))
+            if (particles_crossed[mm].insert(part.state_new().tag).second)
               values[mm].push_back(get(part));
     }
 
@@ -620,12 +624,20 @@ namespace ctrw
     const std::vector<double> measure_points;
 
   private:
-    Container<Container<Type>> values;
+    std::vector<std::vector<Type>> values;
     std::vector<std::unordered_set<std::size_t>> particles_crossed;
+    
+    template <typename Container>
+    auto get_measure_points(Container const& measure_points_in)
+    {
+      std::vector<double> measure_points;
+      for (auto const& val : measure_points)
+        measure_points.push_back(val);
+      return measure_points;
+    }
   };
       
-  template <typename Type = double,
-  template<typename> typename Container = std::vector>
+  template <typename Type = double>
   class Measurer_Store_FirstCrossing_Total
   {
   public:
@@ -634,22 +646,15 @@ namespace ctrw
     : measure_points{ measure_points }
     , values(measure_points.size())
     , particles_crossed(measure_points.size())
-    {
-      for (auto& val : values)
-        val.reserve(reserve);
-    }
+    {}
     
-    template <typename Cont>
+    template <typename Container>
     Measurer_Store_FirstCrossing_Total
-    (Cont const& measure_points, std::size_t reserve = 0)
-    : values(measure_points.size())
+    (Container const& measure_points, std::size_t reserve = 0)
+    : measure_points{ get_measure_points(measure_points) }
+    , values(measure_points.size())
     , particles_crossed(measure_points.size())
-    {
-      for (auto const& val : measure_points)
-        this->measure_points.push_back(val);
-      for (auto& val : values)
-        val.reserve(reserve);
-    }
+    {}
 
     template <typename Subject, typename Getter,
     typename Getter_Position = ctrw::Get_position_component<0>>
@@ -661,7 +666,7 @@ namespace ctrw
         for (std::size_t mm = 0; mm < measure_points.size(); ++mm)
           if ((get_position(part.state_new())-measure_points[mm])*
               (get_position(part.state_old())-measure_points[mm]) <= 0.)
-            if (particles_crossed[mm].insert(part.state_new().tag))
+            if (particles_crossed[mm].insert(part.state_new().tag).second)
             {
               if (particles_crossed[mm].size() == 0)
                 values[mm] = get(part);
@@ -698,8 +703,17 @@ namespace ctrw
     const std::vector<double> measure_points;
 
   private:
-    Container<Type> values;
+    std::vector<Type> values;
     std::vector<std::unordered_set<std::size_t>> particles_crossed;
+    
+    template <typename Container>
+    auto get_measure_points(Container const& measure_points_in)
+    {
+      std::vector<double> measure_points;
+      for (auto const& val : measure_points)
+        measure_points.push_back(val);
+      return measure_points;
+    }
   };
 }
 

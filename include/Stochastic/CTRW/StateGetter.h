@@ -10,6 +10,7 @@
 #define StateGetter_h
 
 #include <utility>
+#include "general/Operations.h"
 
 namespace ctrw
 {

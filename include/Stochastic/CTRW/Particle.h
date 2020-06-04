@@ -56,10 +56,10 @@ namespace ctrw
       transformation(new_state);
     }
 
-    State const& state_new() const
+    State state_new() const
     { return new_state; }
 
-    State const& state_old() const
+    State state_old() const
     { return old_state; }
 
   private:

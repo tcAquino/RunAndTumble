@@ -6,8 +6,6 @@
 //  Copyright © 2019 Tomas Aquino. All rights reserved.
 //
 
-// Interface for PTRW using CTRW object framework
-
 #ifndef PTRW_h
 #define PTRW_h
 
@@ -15,6 +13,7 @@
 
 namespace ctrw
 {
+  // Interface for PTRW using CTRW object framework
 	template <typename CTRW, typename Transitions, typename Time_t = double>
 	class PTRW
 	{
@@ -62,13 +61,16 @@ namespace ctrw
       current_time += time_step;
     }
 
-    void evolve(Time time_max)
+    // Step each particle directly up to time_max
+    // Requires particle time to exist and be updated
+    void evolve_by_particle(Time time_max)
     {
       ctrw.evolve_time(time_max, transitions);
       current_time = time_max;
     }
     
-    void evolve_by_step(Time time_max)
+    // Step all particles step by step up to time_max
+    void evolve(Time time_max)
     {
       while (current_time < time_max)
         step();
@@ -84,10 +86,10 @@ namespace ctrw
     double time() const
     { return current_time; }
 
-		Container const& particles() const
+		Container particles() const
 		{ return ctrw.particles(); }
 
-		Container const& particles(std::size_t part) const
+		Particle particles(std::size_t part) const
 		{ return ctrw.particles(part); }
     
     auto cbegin() const

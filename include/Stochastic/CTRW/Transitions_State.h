@@ -113,7 +113,6 @@ namespace ctrw
         state.position[dd] += jump[dd];
 
 			boundary(state, state_old);
-      state.time += timestep();
 		}
 
 		void timestep(double time_step)
