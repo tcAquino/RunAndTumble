@@ -109,8 +109,9 @@ namespace bacteria
       void get(std::string const& filename)
       {
         std::ifstream file(filename);
-        throw std::runtime_error{ "Could not open " +
-          filename + " for reading" };
+        if (!file.is_open())
+          throw std::runtime_error{ "Could not open " +
+            filename + " for reading" };
         file >> nutrient_diffusion;
         if (file.fail())
           throw std::invalid_argument{ "Inappropriate input file " +
@@ -139,8 +140,9 @@ namespace bacteria
       void get(std::string const& filename)
       {
         std::ifstream file(filename);
-        throw std::runtime_error{ "Could not open " +
-          filename + " for reading" };
+        if (!file.is_open())
+          throw std::runtime_error{ "Could not open " +
+            filename + " for reading" };
         file >> run_velocity
              >> rate_run_to_tumble >> rate_tumble_to_run
              >> rate_wall_tumble_to_run >> angle_variance_factor
