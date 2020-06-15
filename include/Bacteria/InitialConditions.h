@@ -60,12 +60,10 @@ namespace bacteria
       {
         std::ifstream file(filename);
         if (!file.is_open())
-          throw std::runtime_error{ "Input file " +
-            filename + " not found" };
+          throw useful::open_read_error(filename);
         file >> total_mass >> nr_particles >> position_xx;
         if (file.fail())
-          throw std::runtime_error{ "Inappropriate input file " +
-            filename };
+           throw useful::bad_file_contents(filename);
       }
       
       static void print_parameter_list()
@@ -94,7 +92,8 @@ namespace bacteria
         return make_particles_line_2d<Particle>(
          nr_particles,
          position_xx,
-         { domain.box.corner[1], domain.box.dimensions[1] });
+         { domain.box.corner[1],
+           domain.box.corner[1]+domain.box.dimensions[1] });
       }
     };
   }
@@ -112,12 +111,10 @@ namespace bacteria
       {
         std::ifstream file(filename);
         if (!file.is_open())
-          throw std::runtime_error{ "Could not open " +
-            filename + " for reading" };
+          throw useful::open_read_error(filename);
         file >> total_mass >> nr_particles;
         if (file.fail())
-          throw std::invalid_argument{ "Inappropriate input file " +
-            filename };
+          throw useful::bad_file_contents(filename);
       }
       
       static void print_parameter_list()
@@ -160,12 +157,10 @@ namespace bacteria
       {
         std::ifstream file(filename);
         if (!file.is_open())
-          throw std::runtime_error{ "Could not open " +
-            filename + " for reading" };
+          throw useful::open_read_error(filename);
         file >> nutrient_concentration;
         if (file.fail())
-          throw std::invalid_argument{ "Inappropriate input file " +
-            filename };
+          throw useful::bad_file_contents(filename);
       }
       
       static void print_parameter_list()

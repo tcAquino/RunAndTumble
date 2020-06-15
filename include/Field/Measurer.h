@@ -15,10 +15,10 @@
 
 namespace field
 {
-  class Measurer
+  class Measurer_Mask
   {
   public:
-    Measurer
+    Measurer_Mask
     (std::string const& filename,
      int precision = 8, std::string delimiter = "\t")
     : output{ filename }
@@ -27,11 +27,10 @@ namespace field
       output << std::setprecision(precision)
              << std::scientific;
       if (!output.is_open())
-        throw std::runtime_error{
-          "Could not open file " + filename + "for writing" };
+        throw useful::open_write_error(filename);
     }
       
-    ~Measurer()
+    ~Measurer_Mask()
     { output.close(); }
       
     template <typename Field, typename Container>

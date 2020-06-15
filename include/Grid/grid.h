@@ -212,7 +212,7 @@ namespace grid
     template <typename Shape>
     void inside
     (Shape const& shape, std::vector<std::size_t>& indices,
-     useful::Selector_t<shape::Paralleliped<>>) const
+     useful::Selector_t<shape::Parallelepiped<>>) const
     {
       std::vector<Pair> near_center;
       double radius_sq = operation::abs_sq(shape.half_dimensions);
@@ -226,7 +226,7 @@ namespace grid
     template <typename Shape>
     void outside
     (Shape const& shape, std::vector<std::size_t>& indices,
-    useful::Selector_t<shape::Paralleliped<>>) const
+     useful::Selector_t<shape::Parallelepiped<>>) const
     {
       for (std::size_t idx = 0; idx < grid.size(); ++idx)
         if (!shape.inside(grid.cell_center(idx)))
@@ -407,7 +407,9 @@ namespace grid
    std::string const& filename, int precision = 8,
    std::string delimiter = "\t")
   {
-    std::fstream output{ filename };
+    std::ofstream output{ filename };
+    if (!output.is_open())
+      throw useful::open_write_error(filename);
     output << std::setprecision(precision);
     output << std::scientific;
     for (auto idx : points)

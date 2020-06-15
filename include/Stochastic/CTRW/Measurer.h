@@ -37,8 +37,7 @@ namespace ctrw
       output << std::setprecision(precision)
              << std::scientific;
       if (!output.is_open())
-        throw std::runtime_error{
-          "Could not open file " + filename + " for writing" };
+        throw useful::open_write_error(filename);
     }
     
     ~Measurer_State()
@@ -117,8 +116,7 @@ namespace ctrw
       output << std::setprecision(precision)
              << std::scientific;
       if (!output.is_open())
-      throw std::runtime_error{
-        "Could not open file " + filename + "for writing" };
+        throw useful::open_write_error(filename);
     }
       
     ~Measurer_Collection()
@@ -162,8 +160,7 @@ namespace ctrw
       output << std::setprecision(precision)
              << std::scientific;
       if (!output.is_open())
-      throw std::runtime_error{
-        "Could not open file " + filename + "for writing" };
+        throw useful::open_write_error(filename);
     }
     
     ~Measurer_Particle()
@@ -205,8 +202,7 @@ namespace ctrw
       output << std::setprecision(precision)
              << std::scientific;
       if (!output.is_open())
-      throw std::runtime_error{
-        "Could not open file " + filename + "for writing" };
+        throw useful::open_write_error(filename);
     }
     
     ~Measurer_Total()
@@ -249,8 +245,7 @@ namespace ctrw
       output << std::setprecision(precision)
              << std::scientific;
       if (!output.is_open())
-      throw std::runtime_error{
-        "Could not open file " + filename + "for writing" };
+        throw useful::open_write_error(filename);
     }
     
     ~Measurer_Mean()
@@ -429,11 +424,21 @@ namespace ctrw
     (Subject const& subject, Getter const& get,
      Getter_Position const& get_position = {})
     {
+//      for (auto const& part : subject.particles())
+//        for (std::size_t mm = 0; mm < measure_points.size(); ++mm)
+//          if ((get_position(part.state_new())-measure_points[mm])*
+//              (get_position(part.state_old())-measure_points[mm]) <= 0.)
+//            values[mm].push_back(get(part));
       for (auto const& part : subject.particles())
-        for (std::size_t mm = 0; mm < measure_points.size(); ++mm)
-          if ((get_position(part.state_new())-measure_points[mm])*
-              (get_position(part.state_old())-measure_points[mm]) <= 0.)
-            values[mm].push_back(get(part));
+      {
+        auto last_crossed = std::upper_bound(std::begin(measure_points),
+          std::end(measure_points), get_position(part.state_old()));
+        auto current_crossed = std::lower_bound(std::begin(measure_points),
+          std::end(measure_points), get_position(part.state_new()));
+        for (std::size_t mm = last_crossed - std::begin(measure_points);
+             mm < current_crossed - std::begin(measure_points); ++mm)
+          values[mm].push_back(get(part));
+      }
     }
 
     std::size_t size(std::size_t mm) const
@@ -499,16 +504,21 @@ namespace ctrw
      Getter_Position const& get_position = {})
     {
       for (auto const& part : subject.particles())
-        for (std::size_t mm = 0; mm < measure_points.size(); ++mm)
-          if ((get_position(part.state_new())-measure_points[mm])*
-              (get_position(part.state_old())-measure_points[mm]) <= 0.)
-          {
-            if (nr_counts[mm] == 0)
-              values[mm] = get(part);
-            else
-              operation::plus_InPlace(values[mm], get(part));
-            ++nr_counts[mm];
-          }
+      {
+        auto last_crossed = std::upper_bound(std::begin(measure_points),
+          std::end(measure_points), get_position(part.state_old()));
+        auto current_crossed = std::lower_bound(std::begin(measure_points),
+          std::end(measure_points), get_position(part.state_new()));
+        for (std::size_t mm = last_crossed - std::begin(measure_points);
+             mm < current_crossed - std::begin(measure_points); ++mm)
+        {
+          if (nr_counts[mm] == 0)
+            values[mm] = get(part);
+          else
+            operation::plus_InPlace(values[mm], get(part));
+          ++nr_counts[mm];
+        }
+      }
     }
     
     std::size_t counts(std::size_t mm) const
@@ -581,11 +591,16 @@ namespace ctrw
      Getter_Position const& get_position = {})
     {
       for (auto const& part : subject.particles())
-        for (std::size_t mm = 0; mm < measure_points.size(); ++mm)
-          if ((get_position(part.state_new())-measure_points[mm])*
-              (get_position(part.state_old())-measure_points[mm]) <= 0.)
-            if (particles_crossed[mm].insert(part.state_new().tag).second)
-              values[mm].push_back(get(part));
+      {
+        auto last_crossed = std::upper_bound(std::begin(measure_points),
+          std::end(measure_points), get_position(part.state_old()));
+        auto current_crossed = std::lower_bound(std::begin(measure_points),
+          std::end(measure_points), get_position(part.state_new()));
+        for (std::size_t mm = last_crossed - std::begin(measure_points);
+             mm < current_crossed - std::begin(measure_points); ++mm)
+          if (particles_crossed[mm].insert(part.state_new().tag).second)
+            values[mm].push_back(get(part));
+      }
     }
 
     std::size_t size(std::size_t mm) const
@@ -655,16 +670,21 @@ namespace ctrw
      Getter_Position const& get_position = {})
     {
       for (auto const& part : subject.particles())
-        for (std::size_t mm = 0; mm < measure_points.size(); ++mm)
-          if ((get_position(part.state_new())-measure_points[mm])*
-              (get_position(part.state_old())-measure_points[mm]) <= 0.)
-            if (particles_crossed[mm].insert(part.state_new().tag).second)
-            {
-              if (particles_crossed[mm].size() == 0)
-                values[mm] = get(part);
-              else
-                operation::plus_InPlace(values[mm], get(part));
-            }
+      {
+        auto last_crossed = std::upper_bound(std::begin(measure_points),
+          std::end(measure_points), get_position(part.state_old()));
+        auto current_crossed = std::lower_bound(std::begin(measure_points),
+          std::end(measure_points), get_position(part.state_new()));
+        for (std::size_t mm = last_crossed - std::begin(measure_points);
+             mm < current_crossed - std::begin(measure_points); ++mm)
+          if (particles_crossed[mm].insert(part.state_new().tag).second)
+          {
+            if (particles_crossed[mm].size() == 0)
+              values[mm] = get(part);
+            else
+              operation::plus_InPlace(values[mm], get(part));
+          }
+      }
     }
     
     std::size_t counts(std::size_t mm) const

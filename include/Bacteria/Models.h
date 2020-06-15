@@ -84,15 +84,13 @@ namespace bacteria
       {
         std::ifstream file(filename);
         if (!file.is_open())
-          throw std::runtime_error{ "Could not open " +
-            filename + " for reading" };
+          throw useful::open_read_error(filename);
         nr_grid_cells.resize(dim);
         file >> time_step;
         for (std::size_t dd = 0; dd < dim; ++dd )
           file >> nr_grid_cells[dd];
         if (file.fail())
-          throw std::invalid_argument{ "Inappropriate input file " +
-            filename };
+          throw useful::bad_file_contents(filename);
       }
       
       static void print_parameter_list()
@@ -111,12 +109,10 @@ namespace bacteria
       {
         std::ifstream file(filename);
         if (!file.is_open())
-          throw std::runtime_error{ "Could not open " +
-            filename + " for reading" };
+          throw useful::open_read_error(filename);
         file >> nutrient_diffusion;
         if (file.fail())
-          throw std::invalid_argument{ "Inappropriate input file " +
-            filename };
+          throw useful::bad_file_contents(filename);
       }
       
       static void print_parameter_list()
@@ -142,16 +138,14 @@ namespace bacteria
       {
         std::ifstream file(filename);
         if (!file.is_open())
-          throw std::runtime_error{ "Could not open " +
-            filename + " for reading" };
+          throw useful::open_read_error(filename);
         file >> run_velocity
              >> rate_run_to_tumble >> rate_tumble_to_run
              >> rate_wall_tumble_to_run >> angle_variance_factor
              >> reaction_rate_volume_per_mass
              >> preferred_concentration;
         if (file.fail())
-          throw std::invalid_argument{ "Inappropriate input file " +
-            filename };
+          throw useful::bad_file_contents(filename);
         angle_variance = 2.*constants::pi*angle_variance_factor;
       }
       

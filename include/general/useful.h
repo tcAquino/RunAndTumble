@@ -14,10 +14,12 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
-#include <string>
+#include <exception>
 #include <functional>
-#include <utility>
+#include <string>
 #include <type_traits>
+#include <utility>
+#include <vector>
 
 namespace useful
 {
@@ -34,6 +36,92 @@ namespace useful
     
     return it != container.end() && *it == val;
   }
+  
+  // Split string
+  // Adapted from Beder Acosta Borges's answer here:
+  // https://stackoverflow.com/questions/14265581/
+  // parse-split-a-string-in-c-using-string-delimiter-standard-c
+  bool endsWith(const std::string& string, const std::string& suffix)
+  {
+    return string.size() >= suffix.size() &&
+      string.substr(string.size() - suffix.size()) == suffix;
+  }
+  std::vector<std::string> split
+  (std::string const& string, std::string const& delimiter = " ",
+   bool empty_entries = false)
+  {
+    std::vector<std::string> tokens;
+
+    for (std::size_t start = 0, end; start < string.length();
+         start = end+delimiter.length())
+    {
+      std::size_t position = string.find(delimiter, start);
+      end = position != std::string::npos? position : string.length();
+
+      std::string token = string.substr(start, end-start);
+      if (empty_entries || !token.empty())
+        tokens.push_back(token);
+    }
+
+    if (empty_entries &&
+        (string.empty() || endsWith(string, delimiter)))
+      tokens.push_back("");
+
+    return tokens;
+  }
+  
+  auto parse_error
+  (std::string const& filename, std::string const& line)
+  {
+    return std::runtime_error{
+      "Could not parse line\n" + line +
+      "\nin file " + filename };
+  }
+  
+  auto parse_error_file(std::string const& filename)
+  {
+    return std::runtime_error{
+      "Could not parse file " + filename };
+  }
+  
+  auto parse_error_line(std::string const& line)
+  {
+    return std::runtime_error{
+      "Could not parse line\n" + line };
+  }
+  
+  auto open_read_error(std::string const& filename)
+  {
+    return std::runtime_error{
+      "Could not open file " + filename + " for reading" };
+  }
+  
+  auto open_write_error(std::string const& filename)
+  {
+    return std::runtime_error{
+      "Could not open file " + filename + " for writing" };
+  }
+  
+  auto bad_file_contents(std::string const& filename)
+  {
+    return std::runtime_error{
+      "Innapropriate contents in file " + filename };
+  }
+  
+  auto bad_eof
+  (std::string const& filename, std::string const& string)
+  {
+    return std::runtime_error{
+    "Reached end of " +
+      filename + " before " + string + " was found" };
+  }
+  
+  auto bad_parameters()
+  {
+    return std::invalid_argument{ "Inappropriate parameters" };
+  }
+  
+  
   
   // From Anton Dyachenko's answer here:
   // https://stackoverflow.com/questions/6534041/how-to-check-whether-operator-exists

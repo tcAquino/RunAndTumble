@@ -16,16 +16,19 @@
 namespace shape
 {
   template <typename Container_t = std::vector<double>>
-  struct Paralleliped
+  struct Parallelepiped
   {
     using Position_type = Container_t;
     Position_type corner;
     Position_type dimensions;
     
-    Position_type half_dimensions{ operation::div_scalar(dimensions,2.) };
+    Position_type half_dimensions{ operation::div_scalar(dimensions, 2.) };
     Position_type center{ operation::plus(corner, half_dimensions) };
     
-    Paralleliped(Position_type corner, Position_type dimensions)
+    Parallelepiped()
+    {}
+    
+    Parallelepiped(Position_type corner, Position_type dimensions)
     : corner{ corner }
     , dimensions{ dimensions }
     {}
@@ -36,15 +39,12 @@ namespace shape
     template <typename Position>
     bool inside(Position const& position) const
     {
-      operation::minus(position, center, position_helper);
+      auto position_helper = operation::minus(position, center);
       for (std::size_t dd = 0; dd < dim(); ++dd)
         if (std::abs(position_helper[dd]) > half_dimensions[dd])
           return false;
       return true;
     }
-      
-  private:
-    mutable Position_type position_helper{ Position_type(dimensions.size()) };
   };
   
   template <typename Container_t = std::vector<double>>
@@ -53,6 +53,9 @@ namespace shape
     using Position_type = Container_t;
     Position_type center;
     double radius;
+    
+    Sphere()
+    {}
 
     Sphere(Position_type center, double radius)
     : center{ center }
@@ -65,14 +68,11 @@ namespace shape
     template <typename Position>
     bool inside(Position const& position) const
     {
-      operation::minus(position, center, position_helper);
+      auto position_helper = operation::minus(position, center);
       if (operation::abs_sq(position_helper) > radius*radius)
         return false;
       return true;
     }
-
-  private:
-      mutable Position_type position_helper{ Position_type(center.size()) };
   };
   
   template <typename Position, typename Sphere>

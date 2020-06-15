@@ -1,0 +1,21 @@
+(CIF written by CleWin 4.1);
+(1 unit = 0.001 micron);
+(ENS - CHIMIE);
+(24 rue Lhomond);
+(75005 PARIS);
+(FRANCE);
+(Layer names:);
+L L0; (CleWin: 0 Layer 0/0f808000 0f808000);
+L L1; (CleWin: 1 Layer 1/0fe08080 0fe08080);
+(Top level:);
+DS1 1 10;
+9 MainSymbol;
+L L0;
+R 150000 200000 0;
+B 100000 50000 0 0;
+B 100000 50000 0 200000;
+L L1;
+B 970000 740000 85000 90000;
+DF;
+C 1;
+E
