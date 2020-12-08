@@ -17,5 +17,3 @@ See the manual file Manual.pdf in the man directory for further details and help
 ## License
 
 License information can be found in the file LICENSE.txt.
-
-See Manual.pdf in the man directory for further details and help or contact tomas.c.aquino@gmail.com.

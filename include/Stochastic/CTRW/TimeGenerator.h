@@ -22,18 +22,18 @@ namespace ctrw
   public:
     using value_type = val_type;
 
-    TimeGenerator_Step( val_type dt = 0. )
-    : dt( dt )
+    TimeGenerator_Step(val_type dt = 0.)
+    : dt(dt)
     {}
 
-    void time_step( val_type dt )
+    void time_step(val_type dt)
     { this->dt = dt; }
 
     val_type time_step() const
     { return dt; }
 
     template <typename TT>
-    val_type operator() ( TT const& = {} )
+    val_type operator() (TT const& = {})
     { return dt; }
   };
   

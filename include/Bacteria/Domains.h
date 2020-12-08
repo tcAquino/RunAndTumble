@@ -10,102 +10,19 @@
 #define Domains_Bacteria_h
 
 #include <algorithm>
-#include <exception>
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
-#include "general/Shape.h"
 #include "general/useful.h"
+#include "Geometry/Shape.h"
 
 namespace bacteria
 {
-  template <typename Shape>
-  struct Domain
-  {
-    using DomainShape = Shape;
-    
-    Shape box;
-    std::vector<shape::Parallelepiped<>> parallelepipeds;
-    std::vector<shape::Sphere<>> spheres;
-    
-    std::vector<double> dimensions() const
-    {
-      if constexpr (std::is_same<Shape,shape::Sphere<>>::value)
-        return std::vector<double>(box.dim(), 2.*box.radius);
-      else
-        return box.dimensions;
-    }
-    
-    template <typename Position>
-    bool out_of_bounds(Position const& position) const
-    {
-      if (!box.inside(position))
-        return 1;
-      for (auto const& shape : parallelepipeds)
-        if (shape.inside(position))
-          return 1;
-      for (auto const& shape : spheres)
-        if (shape.inside(position))
-          return 1;
-      
-      return 0;
-    }
-  };
-  
-  template <typename CTRW, typename Domain>
-  bool out_of_bounds(CTRW const& ctrw, Domain const& domain)
-  {
-    for (auto const& part : ctrw.particles())
-    if (domain.out_of_bounds(part.state_new().position))
-      return 1;
-    return 0;
-  }
-  
-  class Grid_void_solid
-  {
-  public:
-    template <typename Domain, typename KDTree>
-    Grid_void_solid(Domain const& domain, KDTree const& kdtree_grid)
-    {
-      for (auto const& shape : domain.parallelepipeds)
-        kdtree_grid.inside(shape, solid_idx);
-      for (auto const& shape : domain.spheres)
-        kdtree_grid.inside(shape, solid_idx);
-      kdtree_grid.outside(domain.box, solid_idx);
-      std::sort(solid_idx.begin(), solid_idx.end());
-      
-      for (std::size_t idx = 0; idx < kdtree_grid.size(); ++idx)
-        if (!useful::contains(solid_idx, idx))
-          void_idx.push_back(idx);
-    }
-    
-    std::size_t nr_voids() const
-    { return void_idx.size(); }
-    
-    std::size_t nr_solids() const
-    { return solid_idx.size(); }
-    
-    std::size_t voids(std::size_t idx) const
-    { return void_idx[idx]; }
-    
-    std::size_t solids(std::size_t idx) const
-    { return solid_idx[idx]; }
-    
-    auto const& voids() const
-    { return void_idx; }
-    
-    auto const& solids() const
-    { return solid_idx; }
-    
-  private:
-    std::vector<std::size_t> void_idx;
-    std::vector<std::size_t> solid_idx;
-  };
-  
   namespace domain_test_rectangle
   {
     char domain_name[64] = "test_rectangle";
@@ -121,12 +38,12 @@ namespace bacteria
       }
     };
     
-    using DomainShape = shape::Parallelepiped<>;
+    using DomainShape = geometry::Parallelepiped<>;
     
-    std::vector<shape::Parallelepiped<>> make_rectangles
+    std::vector<geometry::Parallelepiped<>> make_rectangles
     (Parameters_Domain const& = {})
     {
-      std::vector<shape::Parallelepiped<>> rectangles;
+      std::vector<geometry::Parallelepiped<>> rectangles;
       
       std::vector<double> corners_x{ 50., 60. };
       std::vector<double> corners_y_even{ 10. };
@@ -153,7 +70,7 @@ namespace bacteria
       return rectangles;
     }
     
-    Domain<DomainShape> make_domain(Parameters_Domain const& = {})
+    geometry::Domain<DomainShape> make_domain(Parameters_Domain const& = {})
     {
       return{
         { { 0., 0. }, { 200., 100. } },
@@ -177,11 +94,11 @@ namespace bacteria
       }
     };
     
-    using DomainShape = shape::Sphere<>;
+    using DomainShape = geometry::Sphere<>;
     double outer_radius = 50.;
     double inner_radius = 40.;
     
-    Domain<DomainShape> make_domain(Parameters_Domain const& = {})
+    geometry::Domain<DomainShape> make_domain(Parameters_Domain const& = {})
     {
       return {
         { { 0., 0. }, outer_radius },
@@ -326,7 +243,7 @@ namespace bacteria
     
     template <>
     std::pair<std::size_t, bool> read_box
-    (std::ifstream& file, Domain<shape::Sphere<>>& domain,
+    (std::ifstream& file, geometry::Domain<geometry::Sphere<>>& domain,
      Parameters_Domain const& parameters)
     {
       std::string line;
@@ -374,7 +291,7 @@ namespace bacteria
     
     template <>
     std::pair<std::size_t, bool> read_box
-    (std::ifstream& file, Domain<shape::Parallelepiped<>>& domain,
+    (std::ifstream& file, geometry::Domain<geometry::Parallelepiped<>>& domain,
      Parameters_Domain const& parameters)
     {
       std::string line;
@@ -421,9 +338,9 @@ namespace bacteria
     }
     
     template <typename DomainShape>
-    Domain<DomainShape> make_domain(Parameters_Domain const& parameters)
+    geometry::Domain<DomainShape> make_domain(Parameters_Domain const& parameters)
     {
-      Domain<DomainShape> domain;
+      geometry::Domain<DomainShape> domain;
 
       std::ifstream file{ parameters.filename_domain };
       if (!file.is_open())
@@ -457,9 +374,9 @@ namespace bacteria
     
     char domain_name[64] = "cif_rectangle";
     
-    using DomainShape = shape::Parallelepiped<>;
+    using DomainShape = geometry::Parallelepiped<>;
     
-    Domain<DomainShape> make_domain
+    geometry::Domain<DomainShape> make_domain
     (cif::Parameters_Domain const& parameters)
     {
       return cif::make_domain<DomainShape>(parameters);
@@ -472,9 +389,9 @@ namespace bacteria
     
     char domain_name[64] = "cif_circle";
     
-    using DomainShape = shape::Sphere<>;
+    using DomainShape = geometry::Sphere<>;
     
-    Domain<DomainShape> make_domain
+    geometry::Domain<DomainShape> make_domain
     (cif::Parameters_Domain const& parameters)
     {
       return cif::make_domain<DomainShape>(parameters);

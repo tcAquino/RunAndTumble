@@ -17,8 +17,8 @@
 #include <nanoflann.hpp>
 #include "general/MultiArray.h"
 #include "general/Operations.h"
-#include "general/Shape.h"
 #include "general/useful.h"
+#include "Geometry/Shape.h"
 
 namespace grid
 {
@@ -212,7 +212,7 @@ namespace grid
     template <typename Shape>
     void inside
     (Shape const& shape, std::vector<std::size_t>& indices,
-     useful::Selector_t<shape::Parallelepiped<>>) const
+     useful::Selector_t<geometry::Parallelepiped<>>) const
     {
       std::vector<Pair> near_center;
       double radius_sq = operation::abs_sq(shape.half_dimensions);
@@ -226,7 +226,7 @@ namespace grid
     template <typename Shape>
     void outside
     (Shape const& shape, std::vector<std::size_t>& indices,
-     useful::Selector_t<shape::Parallelepiped<>>) const
+     useful::Selector_t<geometry::Parallelepiped<>>) const
     {
       for (std::size_t idx = 0; idx < grid.size(); ++idx)
         if (!shape.inside(grid.cell_center(idx)))
@@ -236,7 +236,7 @@ namespace grid
     template <typename Shape>
     void inside
     (Shape const& shape, std::vector<std::size_t>& indices,
-     useful::Selector_t<shape::Sphere<>>) const
+     useful::Selector_t<geometry::Sphere<>>) const
     {
       std::vector<std::pair<size_t,double>> near_center;
       double radius_sq = shape.radius*shape.radius;
@@ -251,7 +251,7 @@ namespace grid
     template <typename Shape>
     void outside
     (Shape const& shape, std::vector<std::size_t>& indices,
-     useful::Selector_t<shape::Sphere<>>) const
+     useful::Selector_t<geometry::Sphere<>>) const
     {
       std::vector<std::pair<size_t,double>> near_center;
       double radius_sq = shape.radius*shape.radius;
@@ -424,6 +424,47 @@ namespace grid
     }
     output.close();
   }
+  
+  class Grid_void_solid
+  {
+  public:
+    template <typename Domain, typename KDTree>
+    Grid_void_solid(Domain const& domain, KDTree const& kdtree_grid)
+    {
+      for (auto const& shape : domain.parallelepipeds)
+        kdtree_grid.inside(shape, solid_idx);
+      for (auto const& shape : domain.spheres)
+        kdtree_grid.inside(shape, solid_idx);
+      kdtree_grid.outside(domain.box, solid_idx);
+      std::sort(solid_idx.begin(), solid_idx.end());
+      
+      for (std::size_t idx = 0; idx < kdtree_grid.size(); ++idx)
+        if (!useful::contains(solid_idx, idx))
+          void_idx.push_back(idx);
+    }
+    
+    std::size_t nr_voids() const
+    { return void_idx.size(); }
+    
+    std::size_t nr_solids() const
+    { return solid_idx.size(); }
+    
+    std::size_t voids(std::size_t idx) const
+    { return void_idx[idx]; }
+    
+    std::size_t solids(std::size_t idx) const
+    { return solid_idx[idx]; }
+    
+    auto const& voids() const
+    { return void_idx; }
+    
+    auto const& solids() const
+    { return solid_idx; }
+    
+  private:
+    std::vector<std::size_t> void_idx;
+    std::vector<std::size_t> solid_idx;
+  };
 }
 
 #endif /* Grid_h */

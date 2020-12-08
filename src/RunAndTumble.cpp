@@ -136,7 +136,7 @@ int main(int argc, const char * argv[])
     discretization_length);
   Grid grid{ discretization_nr_padded, discretization_length, grid_corner };
   grid::KDTree_Grid<Grid, dim> kdtree_grid{ grid };
-  Grid_void_solid void_solid{ domain, kdtree_grid };
+  grid::Grid_void_solid void_solid{ domain, kdtree_grid };
   grid::KDTree_Grid_Mask<Grid, dim> kdtree_void{ grid, void_solid.voids() };
   grid::KDTree_Grid_Mask<Grid, dim> kdtree_solid{ grid, void_solid.solids() };
   auto bcs{

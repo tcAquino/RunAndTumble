@@ -1,6 +1,6 @@
 //
 //  Reaction.h
-//  rCTRW
+//  CTRW
 //
 //  Created by Tomas Aquino on 4/30/18.
 //  Copyright © 2018 Tomas Aquino. All rights reserved.
@@ -11,9 +11,17 @@
 
 #include <cmath>
 #include <random>
+#include <vector>
+#include "Geometry/Coordinates.h"
 
 namespace ctrw
 {
+  // Single-species mass action reaction stoichiometry A -> \varnothing
+  // using analytical solution
+  // stoiochiometry_type should be set to -1, 0, 1
+  // for stoiohiometry < 1, stoichiometry = 1, and stoichiometry > 1,
+  // respectively, to implement appropriate analytical solution
+  // at compile time
 	template <int stoichiometry_type>
 	class Reaction_MassAction_SingleSpecies
 	{
@@ -39,6 +47,33 @@ namespace ctrw
 		double coeff = rate/std::tgamma(stoichiometry - 1);
 		double exponent = 1. / (1. - stoichiometry);
 	};
+  
+  // Analytical solution for stoichiometry A -> \varnothing
+  // for stoichiometry < 1, for which mass becomes 0 in finite time
+  template <>
+  double Reaction_MassAction_SingleSpecies<-1>::
+  AnalyticalSol(double exposure_time, double mass) const
+  {
+    double val = mass*std::pow(1. + coeff*exposure_time, exponent);
+    return val < 0. ? 0. : val;
+  }
+
+  // Analytical solution for A -> \varnothing
+  template <>
+  double Reaction_MassAction_SingleSpecies<0>::
+  AnalyticalSol(double exposure_time, double mass) const
+  {
+    return mass*std::exp( -rate * exposure_time );
+  }
+
+  // Analytical solution for stoichiometry A -> \varnothing
+  // for stoichiometry > 1
+  template <>
+  double Reaction_MassAction_SingleSpecies<1>::
+  AnalyticalSol(double exposure_time, double mass) const
+  {
+    return mass*std::pow(1. + coeff*exposure_time, exponent);
+  }
 
 	class Reaction_Decay_Mass
 	{
@@ -56,6 +91,7 @@ namespace ctrw
 		}
 	};
 
+  // Instantaneous decay along links between trips
 	class Reaction_Decay_Inst
 	{
 	public:
@@ -67,6 +103,8 @@ namespace ctrw
 		}
 	};
 
+  // Exponential decay along links between traps
+  // with quenched reactive or non-reactive traps
 	class Reaction_Decay_Prob_Rate
 	{
     std::mt19937 rng{ std::random_device{}() };
@@ -89,6 +127,8 @@ namespace ctrw
 		}
 	};
 
+  // Exponential decay along links between traps
+  // with quenched heterogeneous trap reaction rate
 	class Reaction_Decay_Prob_Het
 	{
     std::mt19937 rng{ std::random_device{}() };
@@ -104,6 +144,7 @@ namespace ctrw
 		}
 	};
 
+  // Instantaneous decay with annealed reactive or non-reactive steps
 	class Reaction_CTRW_Decay_Inst
 	{
     std::mt19937 rng{ std::random_device{}() };
@@ -122,6 +163,7 @@ namespace ctrw
 		}
 	};
 
+  // Exponential decay with annealed reactive or non-reactive steps
 	class Reaction_CTRW_Decay_Prob_Rate
 	{
     std::mt19937 rng{ std::random_device{}() };
@@ -147,6 +189,7 @@ namespace ctrw
 		}
 	};
 
+  // Exponential decay with annealed reaction rate in each step
 	template <typename Rate_generator>
 	class Reaction_CTRW_Decay_Prob_Het
 	{
@@ -168,6 +211,9 @@ namespace ctrw
 		}
 	};
 
+  // Exponential decay when state meets condition
+  // Condition must take a state and returns true if condition
+  // for reaction is met, and false otherwise
   template <typename Condition>
   class Reaction_CTRW_Decay_Condition
   {
@@ -189,28 +235,6 @@ namespace ctrw
   private:
     Condition condition;
   };
-  
-	template <>
-	double Reaction_MassAction_SingleSpecies<-1>::
-	AnalyticalSol(double exposure_time, double mass) const
-	{
-		double val = mass*std::pow(1. + coeff*exposure_time, exponent);
-		return val < 0. ? 0. : val;
-	}
-
-	template <>
-	double Reaction_MassAction_SingleSpecies<0>::
-	AnalyticalSol(double exposure_time, double mass) const
-	{
-		return mass * std::exp( -rate * exposure_time );
-	}
-
-	template <>
-	double Reaction_MassAction_SingleSpecies<1>::
-	AnalyticalSol(double exposure_time, double mass) const
-	{
-		return mass*std::pow(1. + coeff*exposure_time, exponent);
-	}
   
   // Decay grid concentration
   // Second-order rate based on particle number concentration and grid concentration
@@ -237,6 +261,88 @@ namespace ctrw
         concentration[grid_idx] *= std::exp(-time_step*rate*concentration_particles);
       }
     }
+  };
+  
+  // Reaction to track reaction prevalence on bead surfaces
+  // in a beadpack
+  template <typename BeadPack>
+  class Reaction_Decay_Condition_Map_Beadpack_3d
+  {
+  public:
+    // Construct for given reaction rate, discretization length for reaction,
+    // number of bins to equally discretize [0, 2pi] for reaction map angles,
+    // and beadpack
+    Reaction_Decay_Condition_Map_Beadpack_3d
+    (double reaction_rate, double length_discretization,
+     std::size_t nr_bins, BeadPack const& bead_pack)
+    : reaction_rate{ reaction_rate }
+    , length_discretization{ length_discretization }
+    , nr_bins_phi{ nr_bins }
+    , nr_bins_theta{ std::size_t(nr_bins/2) }
+    , bead_pack{ bead_pack }
+    {
+      // Equally-discretized angle bins for azimuthal and elevation angles phi and theta
+      // Note: the solid angle associated with each bin is not constant
+      map_phi_theta.assign(nr_bins,
+        std::vector<double>(std::size_t(nr_bins/2), 0.));
+    }
+    
+    // Consume state.mass during exposure time according to reaction
+    // Store amount of reaction in appropriate angle bin
+    template <typename State>
+    void operator()(State& state, double exposure_time)
+    {
+      auto near = bead_pack.near(state.position, length_discretization);
+      if (near.first)
+      {
+        double old_mass = state.mass;
+        state.mass *= std::exp(-reaction_rate*exposure_time);
+        
+        std::size_t bead = bead_pack.nearest_neighbor(state.position).first;
+        auto spherical = geometry::cartesian2spherical(
+          operation::minus(state.position, bead_pack.center(bead)));
+        std::size_t bin_phi = (spherical[1]+constants::pi)/(2.*constants::pi)*nr_bins_phi;
+        if (bin_phi == nr_bins_phi)
+          --bin_phi;
+        std::size_t bin_theta = spherical[2]/constants::pi*nr_bins_theta;
+        if (bin_theta == nr_bins_theta)
+          --bin_theta;
+        map_phi_theta[bin_phi][bin_theta] += old_mass - state.mass;
+      }
+    }
+    
+    // Print angle values and corresponding amount of mass consumed to file
+    // file columns: phi theta consumption
+    void print_map
+    (std::string const& filename,
+     int precision = 8, std::string delimiter = "\t")
+    {
+      std::ofstream output{ filename };
+      if (!output.is_open())
+        throw useful::open_write_error(filename);
+      output << std::scientific << std::setprecision(precision);
+      
+      for (std::size_t ii = 0; ii < nr_bins_phi; ++ii)
+      {
+        double phi = 2.*constants::pi*(ii+0.5)/nr_bins_phi - constants::pi;
+        for (std::size_t jj = 0; jj < nr_bins_theta; ++jj)
+        {
+          double theta = constants::pi*(jj+0.5)/nr_bins_theta;
+          output << phi << delimiter
+                 << theta << delimiter
+                 << map_phi_theta[ii][jj] << "\n";
+        }
+      }
+    }
+    
+  private:
+    const double reaction_rate;          // Reaction rate in discretization reactive region
+    const double length_discretization;  // Reaction occurs within this length of bead surfaces
+    std::size_t nr_bins_phi;             // Number of bins to equally discretize azimuthal angle
+    std::size_t nr_bins_theta;           // Number of bins to equally discretize elevation angle
+    BeadPack const& bead_pack;           // Beadpack whose bead surfaces are reactive
+    std::vector<std::vector<double>>
+      map_phi_theta;                     // Mass consumed at each angle bin
   };
 }
 

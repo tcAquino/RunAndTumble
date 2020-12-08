@@ -239,6 +239,47 @@ namespace ctrw
   Transitions_PTRW_Transport_Reaction
   (Transitions_Transport&&, Reaction&&, double) ->
   Transitions_PTRW_Transport_Reaction<Transitions_Transport, Reaction>;
+  
+  template <typename Transitions_Transport, typename Reaction>
+  class Transitions_CTRW_Transport_Reaction
+  {
+  public:
+    Transitions_CTRW_Transport_Reaction
+    (Transitions_Transport&& transitions_transport,
+     Reaction&& reaction)
+    : transitions_transport{
+      std::forward<Transitions_Transport>(transitions_transport) }
+    , reaction{ std::forward<Reaction>(reaction) }
+    {}
+    
+    Transitions_CTRW_Transport_Reaction
+    (Transitions_Transport&& transitions_transport,
+     Reaction reaction, double time_step)
+    : transitions_transport{
+      std::forward<Transitions_Transport>(transitions_transport) }
+    , reaction{ std::forward<Reaction>(reaction) }
+    {}
+
+    template <typename State>
+    void operator()(State& state)
+    {
+      auto time_old = state.time;
+      transitions_transport(state);
+      reaction(state, state.time-time_old);
+    }
+
+  private:
+    Transitions_Transport transitions_transport;
+    Reaction reaction;
+  };
+  template <typename Transitions_Transport, typename Reaction>
+  Transitions_CTRW_Transport_Reaction
+  (Transitions_Transport&&, Reaction&&) ->
+  Transitions_CTRW_Transport_Reaction<Transitions_Transport, Reaction>;
+  template <typename Transitions_Transport, typename Reaction>
+  Transitions_CTRW_Transport_Reaction
+  (Transitions_Transport&&, Reaction&&, double) ->
+  Transitions_CTRW_Transport_Reaction<Transitions_Transport, Reaction>;
 
 	template <typename TimeGenerator,
   typename JumpGenerator, typename Reaction>
